@@ -347,19 +347,32 @@ import { GENERAL_LINK } from '../js/whatsapp.js';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
+// hero button, error notice, noscript fallback and footer
+const EXPECTED_WHATSAPP_LINK_COUNT = 4;
+
 test('every WhatsApp link in index.html is the general link', () => {
   const links = [...html.matchAll(/href="(https:\/\/wa\.me\/[^"]*)"/g)].map((m) => m[1]);
-  assert.ok(links.length >= 2, 'expected at least the hero button and the footer link');
+  assert.equal(
+    links.length,
+    EXPECTED_WHATSAPP_LINK_COUNT,
+    `expected ${EXPECTED_WHATSAPP_LINK_COUNT} WhatsApp links (hero, error notice, noscript, footer), found ${links.length}. If you added or removed one on purpose, update EXPECTED_WHATSAPP_LINK_COUNT in tests/index.test.js`,
+  );
   for (const link of links) {
     assert.equal(link, GENERAL_LINK);
   }
 });
 
 test('links that open in a new tab use a safe rel', () => {
-  const opened = [...html.matchAll(/<a [^>]*target="_blank"[^>]*>/g)].map((m) => m[0]);
+  const anchors = [...html.matchAll(/<a\b[^>]*>/gi)].map((m) => m[0]);
+  const opened = anchors.filter((tag) => /target\s*=\s*["']?_blank/i.test(tag));
   assert.ok(opened.length > 0);
   for (const tag of opened) {
-    assert.match(tag, /rel="noopener noreferrer"/);
+    const rel = /rel\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1] ?? '';
+    const tokens = rel.split(/\s+/);
+    assert.ok(
+      tokens.includes('noopener') && tokens.includes('noreferrer'),
+      `missing rel="noopener noreferrer" in: ${tag}`,
+    );
   }
 });
 
@@ -373,6 +386,12 @@ test('index.html has a title, description and preview tags', () => {
 test('index.html has the menu mount point and the error notice', () => {
   assert.match(html, /id="menu-list"/);
   assert.match(html, /id="menu-notice"/);
+});
+
+test('the error notice is hidden by default and the noscript fallback offers WhatsApp', () => {
+  // js/app.js reveals the notice with `notice.hidden = false` when the menu fails to load.
+  assert.match(html, /<div id="menu-notice"[^>]*\bhidden\b/);
+  assert.match(html, /<noscript>[\s\S]*https:\/\/wa\.me\/[\s\S]*<\/noscript>/);
 });
 ```
 
@@ -425,7 +444,7 @@ O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%
     <section class="menu" aria-labelledby="menu-title">
       <div class="container">
         <h2 id="menu-title" class="section-title">Cardápio</h2>
-        <ul id="menu-list" class="menu__list"></ul>
+        <ul id="menu-list" class="menu__list" role="list"></ul>
         <div id="menu-notice" class="error-notice" hidden>
           <p>Não conseguimos mostrar o cardápio agora. Chame a Cá no WhatsApp e ela te passa os sabores e os preços.</p>
           <a class="button" href="https://wa.me/5519996851415?text=Ol%C3%A1%2C%20C%C3%A1!%20Vim%20pelo%20card%C3%A1pio%20online%20e%20gostaria%20de%20fazer%20uma%20encomenda." target="_blank" rel="noopener noreferrer">Falar com a Cá no WhatsApp</a>
@@ -813,7 +832,7 @@ function createDetails(cake) {
   button.target = '_blank';
   button.rel = 'noopener noreferrer';
   button.textContent = 'Pedir pelo WhatsApp';
-  button.setAttribute('aria-label', `Pedir ${cake.name} pelo WhatsApp`);
+  button.setAttribute('aria-label', `Pedir pelo WhatsApp: ${cake.name}`);
 
   details.append(name, price, button);
   return details;
@@ -1031,7 +1050,7 @@ Convenção de código: tudo o que é código (identificadores, comentários, te
 
 ## Ver o site no computador
 
-O navegador bloqueia a leitura do `data/menu.json` quando o `index.html` é aberto com duplo clique. Use um servidor local:
+O navegador bloqueia a leitura do `data/menu.json` e também os módulos JavaScript quando o `index.html` é aberto com duplo clique. Por isso a página não mostra cardápio nenhum (só o título "Cardápio"). Para ver o site, é preciso um servidor local:
 
 ```bash
 python3 -m http.server 8000
@@ -1116,4 +1135,5 @@ Publicar conforme a hospedagem escolhida. O merge da branch `feat/cardapio-onlin
 
 - [ ] Abrir a URL pública no celular, ver os 18 cards com foto e testar um botão de pedido.
 - [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto).
+- Plano B, só se a prévia não mostrar a foto: o WhatsApp pode não aceitar WebP no `og:image` (e prefere imagens com menos de uns 300 KB). Gerar um JPEG com `sips -Z 1200 -s format jpeg -s formatOptions 70 <foto de origem> --out img/og.jpg`, conferir que ele tem menos de 300 KB, apontar o `og:image` para `PUBLIC_URL` + `img/og.jpg` (ou seja, `PUBLIC_URLimg/og.jpg`) e incluir o `img/og.jpg` no commit.
 - [ ] Confirmar com a Cá os horários de encomenda e a grafia "Delicias" (pontos em aberto da spec).

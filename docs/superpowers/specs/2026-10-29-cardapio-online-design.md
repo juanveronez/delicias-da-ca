@@ -134,6 +134,7 @@ A página tem `title`, `meta description` e tags Open Graph (`og:title`, `og:des
 - O verde do mockup (`#5b8a3c`) com texto branco dá cerca de 4:1 de contraste, abaixo dos 4,5:1 recomendados para texto pequeno. O botão usa um verde mais escuro, de modo que atinja 4,5:1 ou mais.
 - Os botões são links (`<a>`) com área de toque de pelo menos 44px de altura.
 - O texto do corpo tem tamanho confortável no celular, sem exigir zoom.
+- O nome acessível do botão de cada card começa com o texto visível ("Pedir pelo WhatsApp: {name}"), para quem usa comando de voz.
 
 ## Testes
 
@@ -142,6 +143,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 - **Link do WhatsApp:** número correto, mensagem codificada, nome com acento e com espaço (ex.: "Paçoca vulcão"), botão geral sem bolo.
 - **Preço:** `50` vira `R$ 50,00`; `30` vira `R$ 30,00`.
 - **`menu.json`:** é um JSON válido (o que pega a vírgula sobrando antes de publicar), e cada item tem `id`, `name`, `price` (número positivo) e `photo`, que tem de ser o `id` mais `.webp`. A quantidade de bolos é conferida contra uma constante nomeada (`EXPECTED_COUNT`), e `id` repetido é reportado pelo nome.
+- **`index.html`:** todos os links do WhatsApp são o link geral, e a quantidade deles é conferida contra uma constante nomeada (`EXPECTED_WHATSAPP_LINK_COUNT`). Os links que abrem em nova aba têm `rel="noopener noreferrer"`. O aviso de erro começa oculto e o `<noscript>` oferece o WhatsApp.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
 
 ## Como rodar localmente
