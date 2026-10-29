@@ -900,7 +900,7 @@ Expected: `ℹ fail 0`. Parar o servidor com Ctrl+C.
 
 ```bash
 git add -A
-git status --short   # conferir que só os arquivos corrigidos entraram
+git status --short   # check that only the fixed files were staged
 git commit -m "fix: ajustes encontrados na conferência no navegador"
 ```
 
@@ -972,6 +972,8 @@ done
 ```
 
 - [ ] **Step 5: Converter a foto de destaque (1200px)**
+
+Rode no mesmo terminal do passo 4: as variáveis `SRC_DIR` e `TMP` precisam existir.
 
 ```bash
 sips -Z 1200 -s format png "$SRC_DIR/hero.jpg" --out "$TMP/hero.png" >/dev/null
