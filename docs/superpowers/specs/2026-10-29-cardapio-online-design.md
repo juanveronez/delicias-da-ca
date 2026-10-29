@@ -25,8 +25,15 @@ Um cardápio online para a Delicias da Cá vender bolos caseiros em Campinas/SP,
 | Estilo | **A · Rústico artesanal**: papel creme, marrom e verde, tipografia manuscrita. Segue a identidade do cardápio atual. |
 | Manutenção | Quem edita o cardápio é o desenvolvedor, num arquivo JSON. Não há painel nem login. |
 | Tecnologia | HTML, CSS e JavaScript puros, sem build e sem framework. |
-| Dados | Os bolos ficam em `data/cardapio.json`, só dados, sem código. |
+| Dados | Os bolos ficam em `data/menu.json`, só dados, sem código. |
 | Publicação | GitHub Pages ou Netlify, gratuitos. A escolha fica para o fim e não muda o código. |
+
+## Convenções de código
+
+- Todo o código fica em inglês: identificadores (variáveis, funções e constantes), comentários, descrições e mensagens dos testes, nomes de arquivo, chaves do JSON, ids do HTML, classes e propriedades personalizadas do CSS e mensagens de console.
+- Só fica em português o que o usuário final vê: os textos, títulos e rótulos da página, a mensagem do WhatsApp, os atributos `alt` e `aria-label`, o `<title>`, a meta description e as tags Open Graph, os avisos e o `name` de cada bolo.
+- Exceção deliberada: os valores de `id` dos bolos (por exemplo, `cenoura-vulcao`) e os nomes das fotos derivados deles (`cenoura-vulcao.webp`) seguem o nome do produto, em português. O mesmo vale para `lang="pt-BR"` e `Intl.NumberFormat('pt-BR', ...)`.
+- A documentação (README, spec e plano) continua em português, mas todo identificador, caminho, classe ou chave citado nela usa os nomes em inglês.
 
 ## Estrutura da página
 
@@ -65,23 +72,23 @@ Os preços vêm da imagem do cardápio atual.
 
 ## Dados
 
-`data/cardapio.json` é uma lista na ordem de exibição:
+`data/menu.json` é uma lista na ordem de exibição:
 
 ```json
 [
-  { "id": "cenoura-vulcao", "nome": "Cenoura vulcão", "preco": 50, "foto": "cenoura-vulcao.webp" }
+  { "id": "cenoura-vulcao", "name": "Cenoura vulcão", "price": 50, "photo": "cenoura-vulcao.webp" }
 ]
 ```
 
 - `id`: texto único, em minúsculas, sem acento nem espaço. É o nome-base da foto.
-- `nome`: texto exibido no card e na mensagem do WhatsApp.
-- `preco`: número em reais, sem símbolo. A formatação (`R$ 50,00`) é feita pelo site.
-- `foto`: nome do arquivo dentro de `img/`.
+- `name`: texto exibido no card e na mensagem do WhatsApp.
+- `price`: número em reais, sem símbolo. A formatação (`R$ 50,00`) é feita pelo site.
+- `photo`: nome do arquivo dentro de `img/`.
 
 ## Link do WhatsApp
 
 - Formato: `https://wa.me/5519996851415?text=<mensagem codificada com encodeURIComponent>`.
-- Mensagem de cada bolo: `Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de {nome} ({preço}).`
+- Mensagem de cada bolo: `Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de {name} ({price}).`
 - Mensagem do botão geral: `Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.`
 - Os links abrem em nova aba, com `rel="noopener noreferrer"`.
 
@@ -90,7 +97,7 @@ Os preços vêm da imagem do cardápio atual.
 ```
 index.html
 css/style.css
-data/cardapio.json
+data/menu.json
 js/whatsapp.js       → funções puras: montar o link e formatar o preço
 js/app.js            → busca o JSON, monta os cards, trata erros
 img/                 → fotos otimizadas
@@ -134,7 +141,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 
 - **Link do WhatsApp:** número correto, mensagem codificada, nome com acento e com espaço (ex.: "Paçoca vulcão"), botão geral sem bolo.
 - **Preço:** `50` vira `R$ 50,00`; `30` vira `R$ 30,00`.
-- **`cardapio.json`:** é um JSON válido, tem os 18 bolos, cada item tem `id`, `nome`, `preco` (número positivo) e `foto`, e os `id` não se repetem. Isso pega a vírgula sobrando antes de publicar.
+- **`menu.json`:** é um JSON válido, tem os 18 bolos, cada item tem `id`, `name`, `price` (número positivo) e `photo`, e os `id` não se repetem. Isso pega a vírgula sobrando antes de publicar.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
 
 ## Como rodar localmente

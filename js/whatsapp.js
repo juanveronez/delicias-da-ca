@@ -1,29 +1,30 @@
-export const NUMERO_WHATSAPP = '5519996851415';
+export const WHATSAPP_NUMBER = '5519996851415';
 
-export const MENSAGEM_GERAL =
+export const GENERAL_MESSAGE =
   'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.';
 
-const formatadorReal = new Intl.NumberFormat('pt-BR', {
+const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
 });
 
-// O Intl separa "R$" do número com um espaço sem quebra (U+00A0).
-// Trocamos por espaço comum para o texto ficar igual em tela e no WhatsApp.
-export function formatarPreco(valor) {
-  return formatadorReal.format(valor).replace(/\u00a0/g, ' ');
+// Intl separates "R$" from the number with a no-break space (U+00A0), and
+// other ICU versions may use U+202F. Normalize every whitespace character to
+// a plain space so the text reads the same on screen and in WhatsApp.
+export function formatPrice(value) {
+  return brlFormatter.format(value).replace(/\s/g, ' ');
 }
 
-export function mensagemBolo(bolo) {
-  return `Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de ${bolo.nome} (${formatarPreco(bolo.preco)}).`;
+export function cakeMessage(cake) {
+  return `Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de ${cake.name} (${formatPrice(cake.price)}).`;
 }
 
-export function linkWhatsApp(mensagem) {
-  return `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
+export function whatsappLink(message) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
-export function linkBolo(bolo) {
-  return linkWhatsApp(mensagemBolo(bolo));
+export function cakeLink(cake) {
+  return whatsappLink(cakeMessage(cake));
 }
 
-export const LINK_GERAL = linkWhatsApp(MENSAGEM_GERAL);
+export const GENERAL_LINK = whatsappLink(GENERAL_MESSAGE);
