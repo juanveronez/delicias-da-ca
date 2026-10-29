@@ -1,0 +1,4 @@
+.superpowers/
+Screenshot *.png
+.DS_Store
+node_modules/
