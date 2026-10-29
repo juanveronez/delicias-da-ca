@@ -135,6 +135,7 @@ A página tem `title`, `meta description` e tags Open Graph (`og:title`, `og:des
 - Os botões são links (`<a>`) com área de toque de pelo menos 44px de altura.
 - O texto do corpo tem tamanho confortável no celular, sem exigir zoom.
 - O nome acessível do botão de cada card começa com o texto visível ("Pedir pelo WhatsApp: {name}"), para quem usa comando de voz.
+- O layout aguenta texto ampliado: o grid usa colunas `minmax(0, 1fr)`, o nome quebra em qualquer ponto se necessário e o texto do cartão desce para baixo da foto quando falta espaço.
 
 ## Testes
 

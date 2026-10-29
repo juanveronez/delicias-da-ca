@@ -556,6 +556,8 @@ body {
   text-align: center;
   text-decoration: none;
   border-radius: 4px;
+  /* Keeps the button shape visible in forced-colors (high-contrast) mode. */
+  border: 2px solid transparent;
 }
 
 .button:hover {
@@ -636,7 +638,7 @@ body {
 /* Menu */
 .menu__list {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   margin: 0;
   padding: 0;
@@ -645,6 +647,7 @@ body {
 
 .cake {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem;
@@ -670,7 +673,7 @@ body {
 }
 
 .cake__details {
-  flex: 1;
+  flex: 1 1 8rem;
   min-width: 0;
 }
 
@@ -678,6 +681,7 @@ body {
   margin: 0;
   font-size: 1.05rem;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .cake__price {
@@ -687,13 +691,19 @@ body {
   white-space: nowrap;
 }
 
-/* Notice shown when the menu fails to load */
+/* Notice shown when the menu fails to load.
+   Do not set `display` here: it would override the `hidden` attribute
+   that js/app.js removes when the menu fails to load. */
 .error-notice {
   padding: 1rem;
   background: var(--paper);
   border: 2px solid var(--border);
   border-radius: 6px;
   text-align: center;
+}
+
+.error-notice p {
+  margin: 0 0 1rem;
 }
 
 /* How to order */
@@ -728,13 +738,13 @@ body {
 /* Larger screens: more menu columns */
 @media (min-width: 640px) {
   .menu__list {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 960px) {
   .menu__list {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 ```
@@ -912,6 +922,8 @@ Conferir:
 
 Deixar a janela em 700px e depois em 1100px.
 - [ ] Com 700px, o cardápio fica em 2 colunas. Com 1100px, em 3 colunas.
+- [ ] Texto ampliado: no Chrome do celular (ou no desktop em Configurações → Aparência → Tamanho da fonte → Muito grande), com a janela em 360px, a página não ganha rolagem horizontal e o texto não sai dos cartões (o texto pode descer para baixo da foto).
+- [ ] Conferir se o botão "Pedir pelo WhatsApp" fica em uma ou duas linhas e se os preços em Georgia (números "de livro antigo" no iPhone e no Mac) ficam bons; se ficarem estranhos, trocar a fonte de `.cake__price` por `var(--font-button)`.
 
 - [ ] **Step 5: Conferir as falhas**
 
