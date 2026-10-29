@@ -141,7 +141,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 
 - **Link do WhatsApp:** número correto, mensagem codificada, nome com acento e com espaço (ex.: "Paçoca vulcão"), botão geral sem bolo.
 - **Preço:** `50` vira `R$ 50,00`; `30` vira `R$ 30,00`.
-- **`menu.json`:** é um JSON válido, tem os 18 bolos, cada item tem `id`, `name`, `price` (número positivo) e `photo`, e os `id` não se repetem. Isso pega a vírgula sobrando antes de publicar.
+- **`menu.json`:** é um JSON válido, e cada item tem `id`, `name`, `price` (número positivo) e `photo`, que tem de ser o `id` mais `.webp`. A quantidade de bolos é conferida contra uma constante nomeada (`EXPECTED_COUNT`) e `id` repetido é reportado pelo nome, o que pega a vírgula sobrando antes de publicar.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
 
 ## Como rodar localmente
