@@ -148,7 +148,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 
 ## Como rodar localmente
 
-O navegador bloqueia a leitura do JSON quando o `index.html` é aberto com duplo clique. Para ver o site, use um servidor local, por exemplo `python3 -m http.server`, e abra `http://localhost:8000`. No GitHub Pages e no Netlify isso funciona sem ajuste.
+O navegador bloqueia a leitura do JSON e também os módulos JavaScript quando o `index.html` é aberto com duplo clique, e a página fica sem cardápio (só o título). Para ver o site, use um servidor local, por exemplo `python3 -m http.server`, e abra `http://localhost:8000`. No GitHub Pages e no Netlify isso funciona sem ajuste.
 
 ## Fora do escopo
 
