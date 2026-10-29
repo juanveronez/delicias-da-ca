@@ -1,0 +1,20 @@
+[
+  { "id": "banana", "name": "Banana", "price": 35, "photo": "banana.webp" },
+  { "id": "cenoura", "name": "Cenoura", "price": 30, "photo": "cenoura.webp" },
+  { "id": "cenoura-brigadeiro", "name": "Cenoura com cobertura de brigadeiro", "price": 40, "photo": "cenoura-brigadeiro.webp" },
+  { "id": "cenoura-chocolate", "name": "Cenoura com cobertura de chocolate", "price": 35, "photo": "cenoura-chocolate.webp" },
+  { "id": "cenoura-vulcao", "name": "Cenoura vulcão", "price": 50, "photo": "cenoura-vulcao.webp" },
+  { "id": "chocolate", "name": "Chocolate", "price": 30, "photo": "chocolate.webp" },
+  { "id": "chocolate-brigadeiro", "name": "Chocolate com cobertura de brigadeiro", "price": 40, "photo": "chocolate-brigadeiro.webp" },
+  { "id": "chocolate-chocolate", "name": "Chocolate com cobertura de chocolate", "price": 35, "photo": "chocolate-chocolate.webp" },
+  { "id": "fuba", "name": "Fubá", "price": 30, "photo": "fuba.webp" },
+  { "id": "fuba-goiabada", "name": "Fubá com goiabada", "price": 35, "photo": "fuba-goiabada.webp" },
+  { "id": "fuba-cremoso", "name": "Fubá cremoso", "price": 40, "photo": "fuba-cremoso.webp" },
+  { "id": "laranja", "name": "Laranja", "price": 30, "photo": "laranja.webp" },
+  { "id": "limao", "name": "Limão", "price": 40, "photo": "limao.webp" },
+  { "id": "milho", "name": "Milho", "price": 35, "photo": "milho.webp" },
+  { "id": "ninho-cobertura", "name": "Ninho com cobertura", "price": 40, "photo": "ninho-cobertura.webp" },
+  { "id": "ninho-vulcao", "name": "Ninho vulcão", "price": 50, "photo": "ninho-vulcao.webp" },
+  { "id": "pacoca", "name": "Paçoca", "price": 40, "photo": "pacoca.webp" },
+  { "id": "pacoca-vulcao", "name": "Paçoca vulcão", "price": 50, "photo": "pacoca-vulcao.webp" }
+]
