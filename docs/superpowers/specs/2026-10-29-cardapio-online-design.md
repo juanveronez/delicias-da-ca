@@ -83,7 +83,7 @@ Os preços vêm da imagem do cardápio atual.
 - `id`: texto único, em minúsculas, sem acento nem espaço. É o nome-base da foto.
 - `name`: texto exibido no card e na mensagem do WhatsApp.
 - `price`: número em reais, sem símbolo. A formatação (`R$ 50,00`) é feita pelo site.
-- `photo`: nome do arquivo dentro de `img/`.
+- `photo`: nome do arquivo dentro de `img/`, sempre o `id` mais `.webp` (por exemplo, `cenoura-vulcao.webp`).
 
 ## Link do WhatsApp
 
@@ -141,7 +141,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 
 - **Link do WhatsApp:** número correto, mensagem codificada, nome com acento e com espaço (ex.: "Paçoca vulcão"), botão geral sem bolo.
 - **Preço:** `50` vira `R$ 50,00`; `30` vira `R$ 30,00`.
-- **`menu.json`:** é um JSON válido, e cada item tem `id`, `name`, `price` (número positivo) e `photo`, que tem de ser o `id` mais `.webp`. A quantidade de bolos é conferida contra uma constante nomeada (`EXPECTED_COUNT`) e `id` repetido é reportado pelo nome, o que pega a vírgula sobrando antes de publicar.
+- **`menu.json`:** é um JSON válido (o que pega a vírgula sobrando antes de publicar), e cada item tem `id`, `name`, `price` (número positivo) e `photo`, que tem de ser o `id` mais `.webp`. A quantidade de bolos é conferida contra uma constante nomeada (`EXPECTED_COUNT`), e `id` repetido é reportado pelo nome.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
 
 ## Como rodar localmente
