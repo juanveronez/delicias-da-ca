@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { GENERAL_LINK } from '../js/whatsapp.js';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
@@ -50,4 +50,10 @@ test('the error notice is hidden by default and the noscript fallback offers Wha
   // js/app.js reveals the notice with `notice.hidden = false` when the menu fails to load.
   assert.match(html, /<div id="menu-notice"[^>]*\bhidden\b/);
   assert.match(html, /<noscript>[\s\S]*https:\/\/wa\.me\/[\s\S]*<\/noscript>/);
+});
+
+test('index.html links a favicon that exists', async () => {
+  const href = /<link rel="icon" href="([^"]+)"/.exec(html)?.[1];
+  assert.ok(href, 'expected a <link rel="icon" href="..."> in index.html');
+  await access(new URL(`../${href}`, import.meta.url));
 });

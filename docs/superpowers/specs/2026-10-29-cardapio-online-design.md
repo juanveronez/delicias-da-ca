@@ -96,6 +96,7 @@ Os preços vêm da imagem do cardápio atual.
 
 ```
 index.html
+favicon.svg          → ícone da aba: um cupcake desenhado em SVG
 css/style.css
 data/menu.json
 js/whatsapp.js       → funções puras: montar o link e formatar o preço
@@ -144,7 +145,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 - **Link do WhatsApp:** número correto, mensagem codificada, nome com acento e com espaço (ex.: "Paçoca vulcão"), botão geral sem bolo.
 - **Preço:** `50` vira `R$ 50,00`; `30` vira `R$ 30,00`.
 - **`menu.json`:** é um JSON válido (o que pega a vírgula sobrando antes de publicar), e cada item tem `id`, `name`, `price` (número positivo) e `photo`, que tem de ser o `id` mais `.webp`. A quantidade de bolos é conferida contra uma constante nomeada (`EXPECTED_COUNT`), e `id` repetido é reportado pelo nome.
-- **`index.html`:** todos os links do WhatsApp são o link geral, e a quantidade deles é conferida contra uma constante nomeada (`EXPECTED_WHATSAPP_LINK_COUNT`). Os links que abrem em nova aba têm `rel="noopener noreferrer"`. O aviso de erro começa oculto e o `<noscript>` oferece o WhatsApp.
+- **`index.html`:** todos os links do WhatsApp são o link geral, e a quantidade deles é conferida contra uma constante nomeada (`EXPECTED_WHATSAPP_LINK_COUNT`). Os links que abrem em nova aba têm `rel="noopener noreferrer"`. O aviso de erro começa oculto e o `<noscript>` oferece o WhatsApp. O favicon (`favicon.svg`) referenciado no `<head>` tem de existir.
 - **`app.js`:** busca o `menu.json` revalidando o cache a cada visita, para que uma mudança de preço apareça logo após a publicação, e um teste confere isso.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
 

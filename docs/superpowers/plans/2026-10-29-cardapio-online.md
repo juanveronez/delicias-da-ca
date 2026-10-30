@@ -29,6 +29,7 @@
 | `data/menu.json` | Os 18 bolos, na ordem de exibição. Só dados. |
 | `index.html` | Estrutura da página, textos fixos, meta tags, botão geral e aviso de erro. |
 | `css/style.css` | Estilo A (rústico artesanal), mobile first. |
+| `favicon.svg` | Ícone da aba do navegador: um cupcake desenhado em SVG (sem arquivos externos). |
 | `js/app.js` | Busca o JSON, monta os cards, trata erro. Usa o DOM. |
 | `tests/whatsapp.test.js` | Testa `js/whatsapp.js`. |
 | `tests/menu.test.js` | Valida `data/menu.json`. |
@@ -334,6 +335,7 @@ git commit -m "feat: dados dos 18 bolos do cardápio"
 **Files:**
 - Create: `tests/index.test.js`
 - Create: `index.html`
+- Create: `favicon.svg`
 
 - [ ] **Step 1: Escrever os testes que falham**
 
@@ -342,7 +344,7 @@ Criar `tests/index.test.js`:
 ```js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { GENERAL_LINK } from '../js/whatsapp.js';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
@@ -393,6 +395,12 @@ test('the error notice is hidden by default and the noscript fallback offers Wha
   assert.match(html, /<div id="menu-notice"[^>]*\bhidden\b/);
   assert.match(html, /<noscript>[\s\S]*https:\/\/wa\.me\/[\s\S]*<\/noscript>/);
 });
+
+test('index.html links a favicon that exists', async () => {
+  const href = /<link rel="icon" href="([^"]+)"/.exec(html)?.[1];
+  assert.ok(href, 'expected a <link rel="icon" href="..."> in index.html');
+  await access(new URL(`../${href}`, import.meta.url));
+});
 ```
 
 - [ ] **Step 2: Rodar e ver falhar**
@@ -400,7 +408,7 @@ test('the error notice is hidden by default and the noscript fallback offers Wha
 Run: `npm test`
 Expected: `tests/index.test.js` falha com `ENOENT` para `index.html`.
 
-- [ ] **Step 3: Criar `index.html`**
+- [ ] **Step 3: Criar `index.html` e `favicon.svg`**
 
 O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%2C%20C%C3%A1!%20Vim%20pelo%20card%C3%A1pio%20online%20e%20gostaria%20de%20fazer%20uma%20encomenda.` em quatro lugares. Ele precisa ser idêntico ao `GENERAL_LINK` (o teste confere). O link está escrito direto no HTML porque o botão do topo precisa funcionar mesmo sem JavaScript.
 
@@ -417,6 +425,7 @@ O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%
   <meta property="og:locale" content="pt_BR">
   <meta property="og:title" content="Delicias da Cá · Bolos caseiros em Campinas">
   <meta property="og:description" content="Bolos caseiros com entrega em Campinas/SP. Veja o cardápio e peça pelo WhatsApp.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
 </head>
@@ -480,6 +489,43 @@ O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%
 </html>
 ```
 
+Criar `favicon.svg` (um cupcake desenhado em SVG, sem arquivos externos nem licença a respeitar; o teste do `<link rel="icon">` confere que o arquivo existe):
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g stroke="#4a2c1a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- frosting tiers, bottom to top -->
+    <rect x="9" y="26" width="46" height="14" rx="7" fill="#f7a6bf"/>
+    <rect x="15" y="17" width="34" height="13" rx="6.5" fill="#fab6ca"/>
+    <rect x="22" y="9" width="20" height="12" rx="6" fill="#fdc9d8"/>
+    <!-- cherry -->
+    <circle cx="32" cy="7" r="4.5" fill="#d62f4b"/>
+    <!-- liner -->
+    <path d="M14 36h36l-4.2 20.2a3 3 0 0 1-2.9 2.3H21.1a3 3 0 0 1-2.9-2.3z" fill="#e8b36a"/>
+  </g>
+  <!-- liner pleats -->
+  <g stroke="#c98b4a" stroke-width="2" stroke-linecap="round">
+    <path d="M23 40.5l1.2 14.5M32 40.5v14.5M41 40.5l-1.2 14.5"/>
+  </g>
+  <!-- sprinkles -->
+  <g stroke-width="2.2" stroke-linecap="round">
+    <path d="M18 32l2-1.2" stroke="#fff"/>
+    <path d="M30 31.5l2.4 1" stroke="#f2c14e"/>
+    <path d="M44 31l-2.2 1.2" stroke="#fff"/>
+    <path d="M26 22.5l2-1" stroke="#f2c14e"/>
+    <path d="M38 23l-2.2-.6" stroke="#fff"/>
+  </g>
+  <!-- cherry shine -->
+  <circle cx="30.4" cy="5.4" r="1.3" fill="#fff"/>
+  <!-- face -->
+  <circle cx="26" cy="46" r="2" fill="#4a2c1a"/>
+  <circle cx="38" cy="46" r="2" fill="#4a2c1a"/>
+  <path d="M29.5 49.5q2.5 2.6 5 0" fill="none" stroke="#4a2c1a" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="22" cy="49" r="2.2" fill="#f08aa5" opacity=".7"/>
+  <circle cx="42" cy="49" r="2.2" fill="#f08aa5" opacity=".7"/>
+</svg>
+```
+
 - [ ] **Step 4: Rodar e ver passar**
 
 Run: `npm test`
@@ -488,7 +534,7 @@ Expected: `ℹ fail 0`. Se o primeiro teste de `index.test.js` falhar, o link co
 - [ ] **Step 5: Commit**
 
 ```bash
-git add index.html tests/index.test.js
+git add index.html favicon.svg tests/index.test.js
 git commit -m "feat: estrutura da página com topo, avisos, cardápio e rodapé"
 ```
 
