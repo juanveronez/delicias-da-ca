@@ -4,9 +4,9 @@
 
 **Goal:** Publicar um site estático de cardápio de bolos caseiros em que cada bolo tem um botão que abre o WhatsApp da Delicias da Cá com a mensagem do pedido já escrita.
 
-**Architecture:** Página única (`index.html`) em HTML, CSS e JavaScript puros, sem build. Os bolos vêm de `data/menu.json`; `js/app.js` busca o JSON e monta os cards com `textContent`. A lógica que não pode quebrar (link do WhatsApp e formatação de preço) fica em `js/whatsapp.js`, um módulo ES de funções puras, testado com o executor nativo do Node (`node --test`).
+**Architecture:** Página única (`index.html`) em HTML, CSS e JavaScript puros, sem build. Os bolos vêm de `data/menu.json`; `js/app.js` busca o JSON e monta os cards com `textContent`. A lógica que não pode quebrar (link do WhatsApp e formatação de preço) fica em `js/whatsapp.js`, um módulo ES de funções puras, testado com o executor nativo do Node (`node --test`). Na publicação, o Netlify roda o comando do `netlify.toml`, que copia só os arquivos do site para `dist/` e publica essa pasta: o resto do repositório (`docs/`, `tests/`, `scripts/` etc.) não vai ao ar.
 
-**Tech Stack:** HTML5, CSS3, JavaScript (módulos ES), Node 22 (`node:test`, sem dependências), `python3 -m http.server` para ver o site localmente, `sips` (macOS) e `cwebp` (Homebrew `webp`), usados pelo `scripts/prepare-photos.mjs` para converter fotos.
+**Tech Stack:** HTML5, CSS3, JavaScript (módulos ES), Node 22 (`node:test`, sem dependências), `python3 -m http.server` para ver o site localmente, `sips` (macOS) e `cwebp` (Homebrew `webp`), usados pelo `scripts/prepare-photos.mjs` para converter fotos, e Netlify (plano gratuito) para publicar, com um `netlify.toml` que copia só os arquivos do site para `dist/`.
 
 **Spec:** `docs/superpowers/specs/2026-10-29-cardapio-online-design.md`
 
@@ -17,23 +17,23 @@
 - Todo o código fica em inglês: identificadores (variáveis, funções e constantes), comentários, descrições e mensagens dos testes, nomes de arquivo, chaves do JSON, ids do HTML, classes e propriedades personalizadas do CSS e mensagens de console.
 - Só fica em português o que o usuário final vê: os textos, títulos e rótulos da página, a mensagem do WhatsApp, os atributos `alt` e `aria-label`, o `<title>`, a meta description e as tags Open Graph, os avisos e o `name` de cada bolo.
 - Exceção deliberada: os valores de `id` dos bolos (por exemplo, `cenoura-vulcao`) e os nomes das fotos derivados deles (`cenoura-vulcao.webp`) seguem o nome do produto, em português. O mesmo vale para `lang="pt-BR"` e `Intl.NumberFormat('pt-BR', ...)`.
-- A documentação (README, spec e plano) continua em português, mas todo identificador, caminho, classe ou chave citado nela usa os nomes em inglês.
+- A documentação (spec e plano) continua em português, exceto o `README.md`, que é escrito em inglês por ser a página do projeto no GitHub. Em todos os documentos, todo identificador, caminho, classe ou chave citado usa os nomes em inglês.
 
 ## Estrutura de arquivos
 
 | Arquivo | Responsabilidade |
 |---|---|
 | `package.json` | Só `name`, `private`, `type` e o script `test`. Sem dependências. |
-| `.gitignore` | Ignora `.superpowers/`, os prints de referência, `.DS_Store`, `node_modules/` e `fotos-originais/` (as fotos enviadas, antes da otimização). |
+| `.gitignore` | Ignora `.superpowers/`, os prints de referência, `.DS_Store`, `node_modules/`, `fotos-originais/` (as fotos enviadas, antes da otimização) e `dist/` (a pasta que o build do Netlify gera). |
 | `js/whatsapp.js` | Funções puras: formatar preço, montar mensagem e link do WhatsApp. Sem DOM. |
 | `data/menu.json` | Os 18 bolos, na ordem de exibição. Só dados. |
-| `index.html` | Estrutura da página, textos fixos, meta tags, botão geral e aviso de erro. |
+| `index.html` | Estrutura da página, textos fixos, meta tags (inclusive as de prévia do link, `og:*`), botão geral e aviso de erro. |
 | `css/style.css` | Estilo A (rústico artesanal), mobile first. |
 | `favicon.svg` | Ícone da aba do navegador: um bolo de forma (com furo no meio e cobertura escorrendo) desenhado em SVG (sem arquivos externos). |
 | `js/app.js` | Busca o JSON, monta os cards, trata erro. Usa o DOM. |
 | `tests/whatsapp.test.js` | Testa `js/whatsapp.js`. |
 | `tests/menu.test.js` | Valida `data/menu.json`. |
-| `tests/index.test.js` | Garante que os links e meta tags do `index.html` estão corretos. |
+| `tests/index.test.js` | Garante que os links e meta tags do `index.html` estão corretos e que a prévia do link (`og:url`, `og:image`, medidas e texto alternativo) aponta para uma imagem real, JPEG ou PNG, de até 300 KB e com as medidas declaradas. |
 | `tests/app.test.js` | Garante que `js/app.js` não injeta HTML e usa `rel` seguro. |
 | `tests/photos.test.js` | (Task 8) Garante que cada foto presente em `img/` é citada no `data/menu.json` (ou é `hero.webp`) e passa no `checkWebp` de `scripts/photo-lib.mjs` (WebP íntegro, até 200 KB, sem EXIF nem XMP). Lista os bolos ainda sem foto, sem falhar. |
 | `scripts/photo-lib.mjs` | (Task 8) Funções puras do conversor de fotos: decidir se precisa reduzir (nunca amplia), ler BMP, achar tarjas pretas, casar o nome do arquivo com o `id` e validar o WebP. Sem efeitos colaterais. |
@@ -41,7 +41,10 @@
 | `tests/photo-lib.test.js` | (Task 8) Testa `scripts/photo-lib.mjs`. |
 | `tests/prepare-photos.test.js` | (Task 8) Testa o comando de ponta a ponta com imagens sintéticas. É pulado quando faltam `sips` ou `cwebp`. |
 | `img/` | Fotos otimizadas (Task 8), que podem chegar em lotes. |
-| `README.md` | Como editar o cardápio, rodar, testar e publicar. |
+| `README.md` | Página do projeto no GitHub, em inglês: o que é, como rodar, editar o cardápio, converter fotos, testar e publicar no Netlify. |
+| `og-image.jpg` | (Task 9) Imagem da prévia do link no WhatsApp e no Instagram: JPEG de 1200x630, menos de 300 KB, recortada de `img/hero.webp`. Binário: o plano descreve como gerar. |
+| `netlify.toml` | (Task 9) Diz ao Netlify o que publicar: o comando de build copia só os arquivos do site (`index.html`, `favicon.svg`, `og-image.jpg`, `css`, `js`, `data` e `img`) para `dist/`, e `dist` é a pasta publicada. |
+| `tests/netlify.test.js` | (Task 9) Confere o `netlify.toml`: o `publish` e o destino do `cp -R` são o mesmo, os caminhos existem, tudo o que a página usa está na lista, nenhuma pasta interna (`docs`, `tests`, `scripts`...) entra, e o comando de build, rodado numa cópia temporária, gera o `dist/` esperado. |
 
 ## Regras gerais deste plano
 
@@ -72,7 +75,10 @@ Screenshot *.png
 .DS_Store
 node_modules/
 fotos-originais/
+dist/
 ```
+
+A linha `dist/` é da pasta que o build do Netlify gera na Task 9: ela nunca vai para o Git.
 
 - [ ] **Step 3: Criar `package.json`**
 
@@ -406,6 +412,87 @@ test('index.html links a favicon that exists', async () => {
   assert.ok(href, 'expected a <link rel="icon" href="..."> in index.html');
   await access(new URL(`../${href}`, import.meta.url));
 });
+
+// WhatsApp and Instagram fetch the preview image by its absolute URL, so the
+// tests check that URL, the file behind it and the size declared in the tags.
+const PREVIEW_IMAGE_MAX_BYTES = 300 * 1024;
+const JPEG_MAGIC = [0xff, 0xd8, 0xff];
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+function metaContent(property) {
+  return new RegExp(`<meta property="${property}" content="([^"]*)">`).exec(html)?.[1];
+}
+
+function startsWith(bytes, magic) {
+  return magic.every((byte, i) => bytes[i] === byte);
+}
+
+// Width and height without any dependency. A PNG keeps them in the first chunk
+// (IHDR, bytes 16 to 23). A JPEG is a chain of marker segments; the Start Of
+// Frame segment (SOF0 baseline, SOF1 or SOF2 progressive) has them after the
+// marker (2 bytes), the length (2) and the precision (1).
+function readImageSize(bytes) {
+  if (startsWith(bytes, PNG_MAGIC)) {
+    return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  }
+  let offset = 2; // skip the start-of-image marker (FF D8)
+  while (offset + 4 <= bytes.length && bytes[offset] === 0xff) {
+    const marker = bytes[offset + 1];
+    if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
+      return { height: bytes.readUInt16BE(offset + 5), width: bytes.readUInt16BE(offset + 7) };
+    }
+    offset += 2 + bytes.readUInt16BE(offset + 2);
+  }
+  return null;
+}
+
+async function loadPreviewImage() {
+  const image = metaContent('og:image');
+  assert.ok(image, 'expected <meta property="og:image" content="..."> in index.html');
+  const bytes = await readFile(new URL(`..${new URL(image).pathname}`, import.meta.url));
+  return { image, bytes };
+}
+
+test('og:url is an absolute https URL that ends with a slash', () => {
+  const pageUrl = metaContent('og:url');
+  assert.ok(pageUrl, 'expected <meta property="og:url" content="..."> in index.html');
+  assert.equal(new URL(pageUrl).protocol, 'https:');
+  assert.ok(pageUrl.endsWith('/'), `og:url should end with "/", got ${pageUrl}`);
+});
+
+test('og:image is absolute, on the same origin as og:url, and points to a file in the repo', async () => {
+  const pageUrl = metaContent('og:url');
+  const image = metaContent('og:image');
+  assert.ok(pageUrl && image, 'expected og:url and og:image in index.html');
+  assert.match(image, /^https:\/\//, `og:image should be an absolute https URL, got ${image}`);
+  assert.equal(new URL(image).origin, new URL(pageUrl).origin, 'og:image and og:url are on different origins');
+  await loadPreviewImage(); // throws if the file is missing at the repo root
+});
+
+test('the preview image is a JPEG or PNG of at most 300 KB', async () => {
+  const { image, bytes } = await loadPreviewImage();
+  assert.ok(
+    startsWith(bytes, JPEG_MAGIC) || startsWith(bytes, PNG_MAGIC),
+    `${image} is not a JPEG or PNG (WhatsApp may ignore other formats, such as WebP)`,
+  );
+  assert.ok(
+    bytes.length <= PREVIEW_IMAGE_MAX_BYTES,
+    `${image} has ${bytes.length} bytes; WhatsApp may drop images above ${PREVIEW_IMAGE_MAX_BYTES}`,
+  );
+});
+
+test('og:image:width and og:image:height are the real size of the preview image', async () => {
+  const { bytes } = await loadPreviewImage();
+  const width = metaContent('og:image:width');
+  const height = metaContent('og:image:height');
+  assert.match(width ?? '', /^\d+$/, `og:image:width should be a number, got ${width}`);
+  assert.match(height ?? '', /^\d+$/, `og:image:height should be a number, got ${height}`);
+  assert.deepEqual({ width: Number(width), height: Number(height) }, readImageSize(bytes));
+});
+
+test('og:image:alt is not empty', () => {
+  assert.match(metaContent('og:image:alt') ?? '', /\S/);
+});
 ```
 
 - [ ] **Step 2: Rodar e ver falhar**
@@ -416,6 +503,8 @@ Expected: `tests/index.test.js` falha com `ENOENT` para `index.html`.
 - [ ] **Step 3: Criar `index.html` e `favicon.svg`**
 
 O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%2C%20C%C3%A1!%20Vim%20pelo%20card%C3%A1pio%20online%20e%20gostaria%20de%20fazer%20uma%20encomenda.` em quatro lugares. Ele precisa ser idêntico ao `GENERAL_LINK` (o teste confere). O link está escrito direto no HTML porque o botão do topo precisa funcionar mesmo sem JavaScript.
+
+As tags de prévia do link (`og:url`, `og:image`, `og:image:width`, `og:image:height` e `og:image:alt`) já entram aqui com o endereço final do site, `https://deliciasdaca.netlify.app/`. O `og:image` aponta para o `og-image.jpg`, um JPEG de 1200x630 recortado do `img/hero.webp`, que a Task 9 (Step 1) ensina a gerar.
 
 ```html
 <!DOCTYPE html>
@@ -430,6 +519,11 @@ O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%
   <meta property="og:locale" content="pt_BR">
   <meta property="og:title" content="Delicias da Cá · Bolos caseiros em Campinas">
   <meta property="og:description" content="Bolos caseiros com entrega em Campinas/SP. Veja o cardápio e peça pelo WhatsApp.">
+  <meta property="og:url" content="https://deliciasdaca.netlify.app/">
+  <meta property="og:image" content="https://deliciasdaca.netlify.app/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Cinco bolos caseiros da Delicias da Cá enfileirados sobre a bancada">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
@@ -525,7 +619,7 @@ Criar `favicon.svg` (um bolo de forma com cobertura escorrendo, sobre um pratinh
 - [ ] **Step 4: Rodar e ver passar**
 
 Run: `npm test`
-Expected: `ℹ fail 0`. Se o primeiro teste de `index.test.js` falhar, o link colado no HTML difere do `GENERAL_LINK`: rode `node -e "import('./js/whatsapp.js').then(m => console.log(m.GENERAL_LINK))"` e copie a saída exatamente.
+Expected: `ℹ fail 0`, se o `og-image.jpg` já existir (com o `img/hero.webp` no repositório, gere-o agora, pelo Step 1 da Task 9, e inclua-o no commit abaixo). Sem ele, falham só os 3 testes da imagem de prévia (`og:image is absolute, on the same origin as og:url, and points to a file in the repo`, `the preview image is a JPEG or PNG of at most 300 KB` e `og:image:width and og:image:height are the real size of the preview image`), e eles passam no Step 1 da Task 9. Se o primeiro teste de `index.test.js` falhar, o link colado no HTML difere do `GENERAL_LINK`: rode `node -e "import('./js/whatsapp.js').then(m => console.log(m.GENERAL_LINK))"` e copie a saída exatamente.
 
 - [ ] **Step 5: Commit**
 
@@ -1124,137 +1218,523 @@ Quando chegarem as fotos que faltam (e a de destaque), repita os passos 4 a 8: o
 
 ---
 
-### Task 9: README e publicação
+### Task 9: Prévia do link, publicação no Netlify e README
 
-**Gate:** o usuário precisa escolher a hospedagem (GitHub Pages ou Netlify) e dizer se haverá domínio próprio. Os passos 3 e 4 só valem depois disso.
+**Gate:** a hospedagem está decidida: Netlify, plano gratuito, no endereço https://deliciasdaca.netlify.app/. O site no Netlify só é criado pelo dono, no fim (Step 8); nada antes disso depende dele. O Step 1 precisa do `img/hero.webp` (Task 8), porque a imagem da prévia do link é recortada dela.
+
+**Por que um build que só copia arquivos.** O Netlify publica a pasta que se indicar, e a raiz do repositório também guarda `docs/`, `tests/`, `scripts/`, `.claude/`, `package.json` e outros arquivos que não podem ir ao ar. O `netlify.toml` manda copiar só os arquivos do site para `dist/` e publicar essa pasta. O Netlify roda o `command` num shell POSIX, então um `cp -R` simples basta.
 
 **Files:**
+- Create: `og-image.jpg` (binário: o Step 1 explica como gerar)
+- Create: `tests/netlify.test.js`
+- Create: `netlify.toml`
 - Modify: `README.md`
-- Modify: `index.html` (tags `og:image` e `og:url`, só depois de saber a URL final)
+- Já feitos antes: as tags `og:` no `index.html` e os testes delas em `tests/index.test.js` (Task 4) e a linha `dist/` do `.gitignore` (Task 1).
 
-- [ ] **Step 1: Escrever o `README.md`**
+- [ ] **Step 1: Gerar `og-image.jpg`**
+
+O WhatsApp e o Instagram mostram a prévia do link com mais confiança quando a imagem é JPEG ou PNG de menos de uns 300 KB; por isso o `og:image` não aponta para o WebP. O `og-image.jpg` fica na raiz do repositório, com 1200x630px, e sai de um recorte do `img/hero.webp` (1200x1055, cinco bolos de forma em fila sobre a bancada). O `sips` não grava WebP, então a foto passa antes por PNG:
+
+```bash
+WORK=$(mktemp -d)
+sips -s format png img/hero.webp --out "$WORK/hero.png"
+sips --cropToHeightWidth 630 1200 --cropOffset 130 0 "$WORK/hero.png" --out "$WORK/crop.png"
+sips -g pixelWidth -g pixelHeight "$WORK/crop.png"
+sips -s format jpeg -s formatOptions 78 "$WORK/crop.png" --out og-image.jpg
+rm -r "$WORK"
+ls -l og-image.jpg
+```
+
+- O `--cropOffset` é (linha, coluna) a partir do canto superior esquerdo. O `sips` tem dois defeitos: um deslocamento (0, 0) vira, sem avisar, um recorte centralizado, e um retângulo que termina no canto inferior esquerdo da imagem é ignorado. Use linha maior que 0, uma janela que não chegue à borda de baixo, e confira sempre o tamanho que saiu (`1200` por `630`).
+- O deslocamento 130 foi escolhido entre vários (110, 130, 150, 190, 230 e 270): a janela vai das linhas 130 a 759 da foto, o bolo de limão (à esquerda) aparece inteiro, com uma folga em cima, e o de chocolate (à direita) fica cortado só pela borda da própria foto. Com 150 ou mais a cobertura do limão já é cortada. Se trocar o `hero.webp`, abra cada recorte (Read ou `open`) e escolha de novo.
+- A qualidade 78 dá uns 230 KB. O alvo é menos de 250 KB (o teste aceita até 300 KB); se passar, baixe o `formatOptions`.
+- A foto de origem não tem metadados. O JPEG leva só um bloco EXIF mínimo com a largura e a altura, sem GPS nem dados de câmera (`sips -g all og-image.jpg` mostra o perfil sRGB e as medidas).
+- Abra o `og-image.jpg` e confira que os cinco bolos aparecem e nada está de lado.
+
+Run: `npm test`
+Expected: `ℹ fail 0`. Os testes `og:image ...` e `the preview image ...`, que a Task 4 deixou vermelhos sem este arquivo, passam: o JPEG tem as medidas das tags (1200x630), menos de 300 KB e fica no mesmo endereço do `og:url`.
+
+```bash
+git add og-image.jpg
+git commit -m "feat: imagem da prévia do link (og-image.jpg)"
+```
+
+- [ ] **Step 2: Escrever o teste do `netlify.toml`**
+
+O teste não usa biblioteca de TOML (o projeto não tem dependências): lê as duas chaves que importam, `command` e `publish`, com expressões regulares simples. Ele confere que:
+
+- o `publish` é `dist` e o comando copia para essa mesma pasta;
+- cada caminho depois do `cp -R` existe no repositório (pega erro de digitação e um `og-image.jpg` esquecido);
+- tudo o que o `index.html` usa (`href` e `src` locais e o caminho do `og:image`), o `MENU_URL` e o `PHOTOS_DIR` do `js/app.js` e os módulos que os `js/*.js` importam estão cobertos pela lista copiada;
+- a lista não tem `docs`, `tests`, `scripts`, `.claude`, `fotos-originais`, `node_modules`, `package.json` nem `.git` (nem `.` ou `*`, que copiariam tudo);
+- o comando de build, rodado de verdade numa cópia temporária do repositório, gera um `dist/` com os arquivos do site e sem `docs` nem `tests`. Este teste é pulado onde faltam o `sh` ou o Git.
+
+Criar `tests/netlify.test.js`:
+
+```js
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Netlify publishes the folder named in netlify.toml, and the build command
+// decides what goes into it. These tests keep that list in sync with what the
+// page really loads, and keep the repo's other folders (docs, tests, ...) out.
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+const read = (file) => readFile(path.join(root, file), 'utf8');
+
+const toml = await read('netlify.toml').catch(() => '');
+const html = await read('index.html');
+const appSource = await read('js/app.js');
+
+// No TOML library (the project has no dependencies): netlify.toml only needs
+// two string keys, so small regexes read them.
+const command = /^\s*command\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];
+const publish = /^\s*publish\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];
+
+// "cp -R <sources...> <destination>/": everything after cp -R, up to the end of the command.
+const copyArgs = /\bcp\s+-R\s+([^&;|]+)/.exec(command ?? '')?.[1].trim().split(/\s+/) ?? [];
+const destination = copyArgs.at(-1)?.replace(/\/+$/, '');
+const copied = copyArgs.slice(0, -1);
+
+// "./css/style.css?v=2" -> "css": the top-level entry of the repo that holds the path.
+function firstSegment(value) {
+  return value.split(/[?#]/)[0].replace(/^(?:\.?\/)+/, '').split('/')[0];
+}
+
+const copiedSegments = new Set(copied.map(firstSegment));
+
+function assertCovered(references, what) {
+  assert.ok(references.length > 0, `found no ${what}; the test may be out of date`);
+  const missing = references.filter(({ path: ref }) => !copiedSegments.has(firstSegment(ref)));
+  assert.deepEqual(
+    missing,
+    [],
+    `${what} not copied by the build command in netlify.toml (add the top-level file or folder to "cp -R"): ${JSON.stringify(missing)}`,
+  );
+}
+
+test('netlify.toml publishes dist and the build command copies into that same folder', () => {
+  assert.ok(command, 'netlify.toml needs a [build] command = "..."');
+  assert.ok(publish, 'netlify.toml needs a [build] publish = "..."');
+  assert.equal(publish, 'dist');
+  assert.ok(copied.length > 0, `expected "cp -R <files> ${publish}/" in the build command, got: ${command}`);
+  assert.equal(destination, publish, `the build command copies into "${destination}", but netlify.toml publishes "${publish}"`);
+});
+
+test('every path copied by the build command exists in the repo', () => {
+  assert.ok(copied.length > 0, 'no paths found after "cp -R" in the build command');
+  const missing = copied.filter((entry) => !existsSync(path.join(root, entry)));
+  assert.deepEqual(missing, [], `the build command copies paths that do not exist: ${missing.join(', ')}`);
+});
+
+test('the build command copies everything index.html references', () => {
+  const references = [];
+  for (const [, value] of html.matchAll(/\b(?:href|src)="([^"]*)"/g)) {
+    // Skip external links (https:, mailto:, ...), protocol-relative URLs and in-page anchors.
+    if (value && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value)) {
+      references.push({ from: 'index.html', path: value });
+    }
+  }
+  // The preview image is an absolute URL on the site's own origin: strip the origin.
+  const ogImage = /<meta property="og:image" content="([^"]+)"/.exec(html)?.[1];
+  assert.ok(ogImage, 'expected an og:image tag in index.html');
+  references.push({ from: 'og:image', path: new URL(ogImage).pathname });
+  assertCovered(references, 'local files referenced by index.html');
+});
+
+test('the build command copies the files js/app.js fetches and the modules js/*.js import', async () => {
+  const references = [];
+  for (const name of ['MENU_URL', 'PHOTOS_DIR']) {
+    const value = new RegExp(`\\b${name}\\s*=\\s*'([^']+)'`).exec(appSource)?.[1];
+    assert.ok(value, `expected ${name} = '...' in js/app.js`);
+    // These are resolved against the page (index.html is at the site root).
+    references.push({ from: `js/app.js ${name}`, path: value });
+  }
+  const scripts = (await readdir(path.join(root, 'js'))).filter((name) => name.endsWith('.js'));
+  assert.ok(scripts.length > 0);
+  for (const script of scripts) {
+    const source = await read(`js/${script}`);
+    for (const [, specifier] of source.matchAll(/\bfrom\s+'(\.{1,2}\/[^']+)'/g)) {
+      // Imports are resolved against the importing file, which lives in js/.
+      references.push({ from: `js/${script}`, path: path.posix.join('js', specifier) });
+    }
+  }
+  assert.ok(references.some(({ path: ref }) => ref.startsWith('js/')), 'expected js/app.js to import another module');
+  assertCovered(references, 'files used by the scripts');
+});
+
+test('the build command does not copy the repo internals', () => {
+  assert.ok(copied.length > 0, 'no paths found after "cp -R" in the build command');
+  const forbidden = ['docs', 'tests', 'scripts', '.claude', 'fotos-originais', 'node_modules', 'package.json', '.git'];
+  const leaked = copied.filter((entry) => forbidden.includes(firstSegment(entry)));
+  assert.deepEqual(leaked, [], `the build command must not publish: ${leaked.join(', ')}`);
+  // Copying "." or a glob would publish all of the above.
+  const wholeRepo = copied.filter((entry) => /^(?:\.{0,2}\/?|\*|\.\*)$/.test(entry));
+  assert.deepEqual(wholeRepo, [], `list the files one by one instead of: ${wholeRepo.join(', ')}`);
+});
+
+// The files that would be in the repo: tracked ones plus new ones that are not git-ignored.
+function listRepoFiles() {
+  try {
+    const output = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    return output.split('\0').filter((file) => file && existsSync(path.join(root, file)));
+  } catch {
+    return null;
+  }
+}
+
+const hasShell = spawnSync('sh', ['-c', 'exit 0']).status === 0;
+const repoFiles = hasShell ? listRepoFiles() : null;
+const skipBuild = !hasShell
+  ? 'sh is not available'
+  : !repoFiles
+    ? 'git is not available or this is not a Git checkout'
+    : false;
+
+test('the build command, run on a copy of the repo, produces a dist/ with only the site', { skip: skipBuild }, async (t) => {
+  assert.ok(command && publish, 'netlify.toml needs a [build] command and publish');
+  const cwd = await mkdtemp(path.join(tmpdir(), 'netlify-build-'));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
+
+  for (const file of repoFiles) {
+    await mkdir(path.dirname(path.join(cwd, file)), { recursive: true });
+    await copyFile(path.join(root, file), path.join(cwd, file));
+  }
+
+  execFileSync('sh', ['-c', command], { cwd, stdio: 'pipe' });
+
+  const dist = path.join(cwd, publish);
+  for (const file of [
+    'index.html',
+    'favicon.svg',
+    'og-image.jpg',
+    'css/style.css',
+    'js/app.js',
+    'js/whatsapp.js',
+    'data/menu.json',
+    'img/hero.webp',
+  ]) {
+    assert.ok(existsSync(path.join(dist, file)), `${publish}/${file} is missing after the build`);
+  }
+  const published = await readdir(dist);
+  for (const name of ['docs', 'tests']) {
+    assert.ok(!published.includes(name), `${publish}/${name} must not be published`);
+  }
+  assert.deepEqual(published.sort(), [...copied].sort(), `${publish}/ should hold exactly the copied entries`);
+});
+```
+
+- [ ] **Step 3: Rodar e ver falhar**
+
+Run: `npm test`
+Expected: os 6 testes de `tests/netlify.test.js` falham, porque o `netlify.toml` ainda não existe.
+
+- [ ] **Step 4: Criar `netlify.toml`**
+
+O `command` cria a pasta `dist/` e copia para ela só os arquivos do site; o `publish` diz ao Netlify qual pasta publicar. Se a página passar a precisar de outro arquivo ou pasta na raiz, acrescente-o ao `cp -R`: o `tests/netlify.test.js` falha se isso for esquecido.
+
+Criar `netlify.toml`:
+
+```toml
+[build]
+  command = "mkdir -p dist && cp -R index.html favicon.svg og-image.jpg css js data img dist/"
+  publish = "dist"
+```
+
+Run: `npm test`
+Expected: `ℹ fail 0`.
+
+Opcional, para ver o resultado do build: rode o `command` à mão na raiz do repositório e olhe a pasta (ela está no `.gitignore`):
+
+```bash
+mkdir -p dist && cp -R index.html favicon.svg og-image.jpg css js data img dist/
+find dist -maxdepth 1
+rm -r dist
+```
+
+Expected: só `index.html`, `favicon.svg`, `og-image.jpg`, `css`, `js`, `data` e `img` (uns 770 KB no total).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add netlify.toml tests/netlify.test.js
+git commit -m "feat: publica só os arquivos do site no Netlify (netlify.toml)"
+```
+
+- [ ] **Step 6: Escrever o `README.md`**
+
+O README é a página do projeto no GitHub, então é escrito em inglês (o texto da página do site continua em português, e este plano também). Tem um cabeçalho centralizado com o `og-image.jpg` como banner, selos estáticos, o sumário e as seções About, Features, Tech stack, Project structure, Getting started, Editing the menu, Photos, Testing, Deployment, Conventions e Known gaps. Antes do commit, confira que cada comando e cada link relativo do README funcionam e que a árvore de arquivos e o número de testes batem com o repositório.
 
 Substituir o conteúdo atual por:
 
 ````markdown
+<div align="center">
+
+<a href="https://deliciasdaca.netlify.app/">
+  <img src="og-image.jpg" alt="Five homemade ring cakes lined up on a kitchen counter" width="720">
+</a>
+
 # Delicias da Cá
 
-Cardápio online de bolos caseiros. Cada bolo tem um botão que abre o WhatsApp com o pedido já escrito. Entregas em Campinas/SP.
+**A mobile-first online menu for homemade ring cakes in Campinas/SP, where every cake has an "order on WhatsApp" button.**
 
-Site estático: HTML, CSS e JavaScript puros, sem build e sem dependências.
+[deliciasdaca.netlify.app](https://deliciasdaca.netlify.app/)
 
-Convenção de código: tudo o que é código (identificadores, comentários, testes e nomes de arquivo) fica em inglês, e só o texto que o cliente vê (a página, a mensagem do WhatsApp e o nome de cada bolo) fica em português, exceto os `id` dos bolos e os nomes das fotos, que seguem o nome do produto.
+[![Node 22](https://img.shields.io/badge/Node-22-339933)](#-getting-started)
+[![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](package.json)
+[![Tests: node:test](https://img.shields.io/badge/tests-node%3Atest-blue)](#-testing)
+[![Hosted on Netlify](https://img.shields.io/badge/hosted%20on-Netlify-00C7B7)](#-deployment)
 
-## Ver o site no computador
+</div>
 
-O navegador bloqueia a leitura do `data/menu.json` e também os módulos JavaScript quando o `index.html` é aberto com duplo clique. Por isso a página não mostra cardápio nenhum (só o título "Cardápio"). Para ver o site, é preciso um servidor local:
+## Table of contents
+
+- [About](#-about)
+- [Features](#-features)
+- [Tech stack](#-tech-stack)
+- [Project structure](#-project-structure)
+- [Getting started](#-getting-started)
+- [Editing the menu](#-editing-the-menu)
+- [Photos](#-photos)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Conventions](#-conventions)
+- [Known gaps](#-known-gaps)
+
+## 🍰 About
+
+Delicias da Cá sells homemade cakes, mostly *bolos de forma* (ring cakes), with delivery in Campinas/SP. This repository is its online menu: one page that shows the flavours, prices and photos and hands the customer over to WhatsApp, where the order is settled. There is no cart, checkout or payment on the site.
+
+It is plain HTML, CSS and JavaScript on purpose. The menu is a JSON file edited by a single person, so there is no build step, no framework to keep up to date and no dependencies to break. Changing a price means editing one line and pushing.
+
+The site itself is written in Brazilian Portuguese; this README is in English.
+
+## ✨ Features
+
+- One "order on WhatsApp" button per cake, opening a chat with a prefilled Portuguese message that names the cake and its price, plus a general order button at the top.
+- The 18 flavours come from [`data/menu.json`](data/menu.json), in display order, with prices formatted by `Intl.NumberFormat('pt-BR')`.
+- WebP photos with lazy loading. A cake without a photo (or a photo that fails to load) falls back to a plain brown block instead of a broken image.
+- Works without JavaScript or when the menu fails to load: a notice with a WhatsApp button replaces the list.
+- Mobile first and accessible: one column on phones and two or three on larger screens, touch targets of at least 44px, button labels that start with their visible text, and a layout that survives enlarged text.
+- The menu is revalidated on every visit (`cache: 'no-cache'`), so a new price shows up right after a deploy.
+- Link previews for WhatsApp and Instagram through Open Graph tags and [`og-image.jpg`](og-image.jpg).
+- 125 tests that need no installed dependencies, including a check that the Netlify build publishes only the site files.
+
+## 🧰 Tech stack
+
+| Area | Choice |
+|---|---|
+| Page | HTML5, CSS3 and JavaScript ES modules, no framework and no bundler |
+| Data | [`data/menu.json`](data/menu.json), read with `fetch` |
+| Tests | Node's built-in test runner (`node --test`), Node 22 |
+| Images | WebP, converted with `sips` (macOS) and `cwebp` by [`scripts/prepare-photos.mjs`](scripts/prepare-photos.mjs) |
+| Local server | `python3 -m http.server` (any static server works) |
+| Hosting | [Netlify](https://www.netlify.com/) free plan, configured by [`netlify.toml`](netlify.toml) |
+
+## 📁 Project structure
+
+```text
+.
+├── index.html                  # the single page: header, notices, menu mount point, how to order
+├── favicon.svg                 # tab icon: a ring cake drawn in SVG
+├── og-image.jpg                # 1200x630 link-preview image (also the banner above)
+├── netlify.toml                # what Netlify builds and publishes
+├── package.json                # name, "type": "module" and the test script; no dependencies
+├── css/
+│   └── style.css               # styles, mobile first
+├── js/
+│   ├── app.js                  # fetches the menu and renders the cards (uses the DOM)
+│   └── whatsapp.js             # pure functions: price format, message and WhatsApp link
+├── data/
+│   └── menu.json               # the cakes, in display order
+├── img/                        # optimised WebP photos: <id>.webp and hero.webp
+├── scripts/
+│   ├── prepare-photos.mjs      # command that turns fotos-originais/ into img/*.webp
+│   └── photo-lib.mjs           # pure helpers used by the command
+├── tests/                      # node:test suites (*.test.js)
+├── docs/superpowers/           # design spec and implementation plan (in Portuguese)
+├── .claude/skills/
+│   └── add-cake-photos/        # Claude Code skill for adding photos to the site
+└── fotos-originais/            # original photos; git-ignored, exists only on the owner's machine
+```
+
+## 🚀 Getting started
+
+Prerequisites:
+
+- Node 22, to run the tests and the photo converter. The site itself needs no Node.
+- Python 3 (or any static file server) to view the site.
+- Only for photo conversion: macOS with `sips` (already there) and `cwebp` (`brew install webp`).
+
+There is nothing to install: do not run `npm install`.
 
 ```bash
+git clone <repository-url>
+cd delicias-da-ca
 python3 -m http.server 8000
 ```
 
-Abra http://localhost:8000.
+Open <http://localhost:8000>.
 
-## Mudar um preço ou incluir um sabor
+A local server is required. Opening `index.html` by double click does not work: browsers block `fetch` and ES modules on `file://` pages, so the page would show the "Cardápio" title and no cakes.
 
-Edite só o `data/menu.json`. Cada bolo é uma linha:
-
-```json
-{ "id": "cenoura-vulcao", "name": "Cenoura vulcão", "price": 50, "photo": "cenoura-vulcao.webp" }
-```
-
-- `id`: minúsculas, sem acento nem espaço, com hífen entre as palavras. É o nome-base da foto.
-- `name`: o que aparece no card e na mensagem do WhatsApp.
-- `price`: número em reais, sem o símbolo `R$`.
-- `photo`: nome do arquivo dentro de `img/`, sempre o `id` mais `.webp` (`<id>.webp`).
-
-Depois de editar, rode `npm test`. Ele avisa se o JSON está quebrado (por exemplo, uma vírgula sobrando). Se incluir ou tirar um sabor de propósito, o teste `menu.json has the expected number of cakes` vai falhar: troque o número da constante `EXPECTED_COUNT` em `tests/menu.test.js`. Também confira que o campo `photo` é o `id` mais `.webp`. Incluir um sabor também pede a foto nova em `img/<id>.webp` (veja a seção Fotos). Sem ela o teste `tests/photos.test.js` não falha, mas lista o bolo entre os que ainda estão sem foto, e o card mostra o bloco marrom no lugar da imagem.
-
-## Fotos
-
-Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior e até 200 KB. Foto menor que 800px fica como está: não se amplia. A foto do topo é `img/hero.webp` (até 1200px no lado maior). Nenhuma foto é obrigatória: a que faltar não quebra a página (o card mostra um bloco marrom e o topo fica sem foto), e o `npm test` lista os bolos ainda sem foto. O teste também falha se sobrar em `img/` um arquivo que não seja o `hero.webp` nem uma foto citada no `data/menu.json`. Para converter as fotos:
-
-1. Instale o `cwebp` uma vez, num Terminal comum (o Homebrew não roda dentro do sandbox do Claude Code): `brew install webp`. O comando também usa o `sips`, que já vem no macOS.
-2. Ponha os originais em `fotos-originais/` (a pasta fica fora do Git), um arquivo por foto, com o nome do `id` do bolo: `cenoura-vulcao.jpg`. A foto do topo se chama `hero.jpg`. Servem `.jpg`, `.jpeg`, `.png` e `.heic`.
-3. Rode:
-
-```bash
-node scripts/prepare-photos.mjs --dry-run   # só mostra o que seria feito
-node scripts/prepare-photos.mjs             # converte para img/
-```
-
-O comando recorta as tarjas pretas dos prints de tela, aplica a rotação das fotos de celular, só reduz (nunca amplia) e grava WebP com qualidade 80. Ele recusa a foto que passar de 200 KB ou que tiver metadados (EXIF ou XMP), avisa dos arquivos cujo nome não é um `id` e não altera os originais. Se o recorte comer um fundo escuro de propósito, rode com `--no-crop=<id>` (ou só `--no-crop`, para todas as fotos). No fim, abra cada foto de `img/` e confira sabor, rotação e recorte antes de fazer o commit.
-
-## Testes
+Run the tests with:
 
 ```bash
 npm test
 ```
 
-Usa o executor de testes do próprio Node (versão 20 ou mais nova). Não há nada para instalar.
+## 📝 Editing the menu
 
-## Publicar
+Edit only [`data/menu.json`](data/menu.json). Each cake is one entry:
 
-O site é só uma pasta de arquivos. Publique a partir do repositório Git (GitHub Pages ou Netlify ligado ao repositório), não arrastando a pasta do computador, para não enviar arquivos de referência junto.
-````
+```json
+{ "id": "cenoura-vulcao", "name": "Cenoura vulcão", "price": 50, "photo": "cenoura-vulcao.webp" }
+```
 
-- [ ] **Step 2: Commit do README**
+| Field | Rule |
+|---|---|
+| `id` | Unique, lowercase, no accents or spaces, words joined by hyphens. It is also the base name of the photo. |
+| `name` | Shown on the card and in the WhatsApp message. |
+| `price` | A positive number in reais, without the `R$` symbol. |
+| `photo` | Always `<id>.webp`, a file in [`img/`](img/). |
+
+After editing, run `npm test`. It catches broken JSON (a stray comma, for example), a `photo` that is not `<id>.webp` and duplicated ids. When you add or remove a flavour on purpose, the test `menu.json has the expected number of cakes` fails: update the `EXPECTED_COUNT` constant in [`tests/menu.test.js`](tests/menu.test.js).
+
+A new flavour also needs its photo (see below). Without it nothing breaks: the card shows a brown block and `npm test` lists the cake as missing a photo.
+
+## 📸 Photos
+
+Rules for the published files: one photo per cake at `img/<id>.webp`, long side up to 800px (`img/hero.webp`, the photo at the top of the page, up to 1200px), at most 200 KB and no EXIF or XMP metadata.
+
+Workflow:
+
+1. Put the originals in `fotos-originais/` (git-ignored), one file per photo, named after the cake id: `cenoura-vulcao.jpg`. The top photo is `hero.jpg`. `.jpg`, `.jpeg`, `.png` and `.heic` work.
+2. Convert:
 
 ```bash
-git add README.md
-git commit -m "docs: README com como editar, testar e publicar"
+node scripts/prepare-photos.mjs --dry-run   # show the plan, write nothing
+node scripts/prepare-photos.mjs             # convert fotos-originais/ into img/
 ```
 
-- [ ] **Step 3: Definir a URL pública**
+3. Open every file in `img/` and check the flavour, the rotation and the crop before committing.
 
-Com a hospedagem escolhida, anote a URL final com a barra no fim (por exemplo, a que o GitHub Pages ou o Netlify mostrar para o projeto). Chame de `PUBLIC_URL` nos passos seguintes. No GitHub Pages, quando o remoto for `github.com/<usuario>/delicias-da-ca`, a URL pública é `https://<usuario>.github.io/delicias-da-ca/` (confira o remoto com `git remote -v`).
+For each photo the command crops black bars from screenshots (only bars of 4px or more), applies the rotation stored in the metadata, never upscales, and writes a WebP at quality 80 without metadata. It refuses a result over 200 KB or with EXIF/XMP, skips files whose name is not a cake id, stops before converting anything if two files claim the same id, and never changes the originals. Writes are atomic, so an interrupted run leaves no half-written photo.
 
-- [ ] **Step 4: Acrescentar `og:url` e `og:image` ao `index.html`**
+| Option | Effect |
+|---|---|
+| `[sourceDir]` | Folder with the originals (default `fotos-originais`). |
+| `--out <dir>` | Folder for the WebP files (default `img`). |
+| `--dry-run` | Show what would be done and write nothing. |
+| `--no-crop` | Do not remove black bars from any photo. |
+| `--no-crop=<id>,<id>` | Same, for the listed ids only. Use it when the background is near black (a cake on a dark cloth looks like a bar to the detector). |
 
-Só faça este passo com o `img/hero.webp` já no repositório: sem ele o `og:image` aponta para uma imagem que não existe, e a prévia do link sai sem foto.
+The exit code is 0 when nothing failed, 1 when a photo failed or an id is duplicated, and 2 for usage errors or missing tools. `node scripts/prepare-photos.mjs --help` lists everything.
 
-Dentro do `<head>`, logo depois da linha `<meta property="og:description" ...>`, inserir as duas linhas abaixo, trocando `PUBLIC_URL` pela URL do passo 3:
+Running the command on the whole folder rewrites photos that are already published. To convert only new ones, copy them to a temporary folder and use it as the source:
 
-```html
-  <meta property="og:url" content="PUBLIC_URL">
-  <meta property="og:image" content="PUBLIC_URLimg/hero.webp">
+```bash
+NEW=$(mktemp -d)
+cp fotos-originais/fuba.jpg "$NEW"
+node scripts/prepare-photos.mjs "$NEW"
+rm -r "$NEW"
 ```
 
-Exemplo de resultado, se `PUBLIC_URL` for `https://exemplo.netlify.app/`:
+To have Claude Code do all of this, drop the new photos in the project root or in `fotos-originais/` and ask it to put them on the site. The project skill [`add-cake-photos`](.claude/skills/add-cake-photos/SKILL.md) matches each picture to a cake, converts only the new files, checks the result and commits them by path.
 
-```html
-  <meta property="og:url" content="https://exemplo.netlify.app/">
-  <meta property="og:image" content="https://exemplo.netlify.app/img/hero.webp">
+## ✅ Testing
+
+```bash
+npm test                          # the whole suite
+node --test tests/menu.test.js    # a single file
 ```
 
-- [ ] **Step 5: Rodar os testes**
+The suite has 125 tests and uses only Node's standard library.
+
+| File | What it covers |
+|---|---|
+| [`tests/whatsapp.test.js`](tests/whatsapp.test.js) | Price formatting, the WhatsApp message and link (number, encoding of accents and spaces). |
+| [`tests/menu.test.js`](tests/menu.test.js) | `data/menu.json`: valid JSON, fields of each cake, number of cakes, unique ids. |
+| [`tests/index.test.js`](tests/index.test.js) | `index.html`: WhatsApp links, safe `rel` on external links, error notice and `noscript` fallback, favicon, and the link-preview tags (the `og:image` URL, its file, format, size under 300 KB and declared dimensions). |
+| [`tests/app.test.js`](tests/app.test.js) | `js/app.js` never injects HTML, uses a safe `rel`, revalidates the menu and sets `loading` before `src`. |
+| [`tests/photos.test.js`](tests/photos.test.js) | Every file in `img/` is a known cake photo (or the hero) and a valid WebP under 200 KB without metadata. |
+| [`tests/photo-lib.test.js`](tests/photo-lib.test.js), [`tests/prepare-photos.test.js`](tests/prepare-photos.test.js) | The photo converter: its pure helpers, and the command end to end on synthetic images. |
+| [`tests/netlify.test.js`](tests/netlify.test.js) | The Netlify publish list (see [Deployment](#-deployment)). |
+
+Two groups of tests skip themselves, with the reason, instead of failing: the converter end-to-end tests when `sips` or `cwebp` is missing, and the build test when `sh` or Git is missing.
+
+The photos test never fails because a photo is missing. It prints a diagnostic line instead, such as `8 cake(s) without a photo yet: cenoura, cenoura-vulcao, ...; hero.webp present`.
+
+## 🌐 Deployment
+
+The site is hosted on Netlify (free plan) at <https://deliciasdaca.netlify.app/>.
+
+First time, with the repository on GitHub:
+
+1. In Netlify: **Add new site** -> **Import an existing project** -> **GitHub** -> pick the `delicias-da-ca` repository.
+2. The build settings come from [`netlify.toml`](netlify.toml): there is nothing to type. Confirm the deploy.
+3. After the first deploy: **Site configuration** -> **Change site name** -> `deliciasdaca`. The `og:url` and `og:image` tags in [`index.html`](index.html) assume `https://deliciasdaca.netlify.app/`. If you have to pick another name, change the address in both tags.
+
+From then on every push to `main` deploys by itself.
+
+**What is published.** The repository root also holds `docs/`, `tests/`, `scripts/`, `.claude/` and `package.json`, which must not be served. So `netlify.toml` publishes a `dist/` folder that the build fills with the site files only:
+
+```toml
+[build]
+  command = "mkdir -p dist && cp -R index.html favicon.svg og-image.jpg css js data img dist/"
+  publish = "dist"
+```
+
+`dist/` is created by the build and is git-ignored. What is served is exactly the `cp -R` list: if the page ever needs another top-level file or folder, add it there. [`tests/netlify.test.js`](tests/netlify.test.js) catches a miss, and also a typo in the list, an internal folder that sneaks in, and a `publish` that differs from the copy destination. It even runs the build command on a temporary copy of the repository and checks the resulting `dist/`.
+
+**Link preview.** [`og-image.jpg`](og-image.jpg) is what WhatsApp and Instagram show when the link is shared. It is a 1200x630 JPEG of about 230 KB, cropped from `img/hero.webp` (a WebP is not reliable for previews). To replace it, keep the format, the 1200x630 size and a weight under 300 KB: `npm test` checks all three and the `og:image:width`/`og:image:height` tags. The steps used to generate it are in Task 9 of the [implementation plan](docs/superpowers/plans/2026-10-29-cardapio-online.md).
+
+To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previews, so to test again after a change append `?v=2` to the link (`https://deliciasdaca.netlify.app/?v=2`). The Facebook Sharing Debugger is an optional second opinion.
+
+## 📐 Conventions
+
+- Code, comments, test titles and messages, JSON keys, CSS classes and file names are in English.
+- Text that the site visitor sees (page copy, `alt` and `aria-label`, meta tags, the WhatsApp message and the cake names) is in Portuguese.
+- Deliberate exception: cake `id`s and the photo names derived from them follow the product name in Portuguese (`cenoura-vulcao`, `cenoura-vulcao.webp`).
+- Commit messages are in Portuguese.
+- The documents in [`docs/`](docs/superpowers) are in Portuguese. This README is in English because it is the project's page on GitHub.
+
+## 🧩 Known gaps
+
+- Photos are still missing for 8 of the 18 cakes (`cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` and `pacoca`). Their cards show a brown block. The current list is always printed by `npm test`.
+- The opening hours shown on the page and the spelling "Delicias" (without the accent) are waiting for the owner's confirmation.
+````
+
+- [ ] **Step 7: Commit do README**
 
 Run: `npm test`
 Expected: `ℹ fail 0`.
 
-- [ ] **Step 6: Commit e publicar**
-
-- Antes de publicar: conferir o e-mail do autor dos commits (`git log --format='%an <%ae>'`); em repositório público ele fica visível.
-- Opcional: um arquivo `.nojekyll` vazio na raiz do repositório impede que o GitHub Pages rode o Jekyll sobre os `.md` de `docs/`. Se for criado, rode `git add .nojekyll` junto com o `git add index.html` do item (a).
-
-Seguir esta ordem:
-
-(a) Fazer o commit das tags `og:`:
-
 ```bash
-git add index.html
-git commit -m "feat: prévia de compartilhamento com og:url e og:image"
+git add README.md
+git commit -m "docs: README final e publicação no Netlify"
 ```
 
-(b) Terminar a branch `feat/cardapio-online` com a skill `superpowers:finishing-a-development-branch` (merge na `main` e envio ao GitHub). Isso só acontece com o pedido do usuário.
+- [ ] **Step 8: Publicar (só com o pedido do usuário)**
 
-(c) Ativar o GitHub Pages a partir da `main` (Settings → Pages). O Pages gratuito exige repositório PÚBLICO, e isso também deixa público o e-mail de autor dos commits (veja o primeiro item acima). No Netlify, ligar o repositório ao site.
+- Antes de enviar ao GitHub: conferir o e-mail do autor dos commits (`git log --format='%an <%ae>'`); em repositório público ele fica visível.
+- Terminar a branch `feat/cardapio-online` com a skill `superpowers:finishing-a-development-branch` (merge na `main` e envio ao GitHub). Merge e push só acontecem com o pedido do usuário.
+- O dono cria o site no Netlify (o Netlify lê o `netlify.toml`, então não há nada para preencher no build): **Add new site** -> **Import an existing project** -> **GitHub** -> repositório `delicias-da-ca`.
+- Depois do primeiro deploy: **Site configuration** -> **Change site name** -> `deliciasdaca`. Se o nome estiver ocupado, escolher outro e trocar o endereço nas tags `og:url` e `og:image` do `index.html` (o `npm test` confere que as duas ficam na mesma origem).
+- A partir daí, cada push para a `main` publica sozinho.
 
-(d) Conferir o site publicado (Step 7).
+- [ ] **Step 9: Conferir o site publicado**
 
-- [ ] **Step 7: Conferir o site publicado**
-
-- [ ] Abrir a URL pública no celular, ver os 18 cards (com foto nos bolos que já têm e o bloco marrom nos demais) e testar um botão de pedido.
-- [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto).
-- Plano B, só se a prévia não mostrar a foto: o WhatsApp pode não aceitar WebP no `og:image` (e prefere imagens com menos de uns 300 KB). Gerar um JPEG com `sips -Z 1200 -s format jpeg -s formatOptions 70 <foto de origem> --out img/og.jpg`, conferir que ele tem menos de 300 KB, apontar o `og:image` para `PUBLIC_URL` + `img/og.jpg` (ou seja, `PUBLIC_URLimg/og.jpg`) e incluir o `img/og.jpg` no commit. O WhatsApp guarda em cache as prévias de link; por isso, depois de trocar para `img/og.jpg`, o reteste pode exigir uma variante da URL (por exemplo, acrescentar `?v=2` ao link compartilhado).
+- [ ] Abrir https://deliciasdaca.netlify.app/ no celular, ver os 18 cards (com foto nos bolos que já têm e o bloco marrom nos demais) e testar um botão de pedido.
+- [ ] Abrir `https://deliciasdaca.netlify.app/package.json` e `https://deliciasdaca.netlify.app/docs/`: devem dar erro 404 (página não encontrada), provando que só os arquivos do site foram publicados.
+- [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto dos bolos). O WhatsApp guarda as prévias em cache: para testar de novo, acrescentar `?v=2` ao link. Se a foto não aparecer, abrir https://deliciasdaca.netlify.app/og-image.jpg no navegador para ver se o arquivo está no ar.
 - [ ] Confirmar com a Cá os horários de encomenda e a grafia "Delicias" (pontos em aberto da spec).

@@ -26,14 +26,14 @@ Um cardápio online para a Delicias da Cá vender bolos caseiros em Campinas/SP,
 | Manutenção | Quem edita o cardápio é o desenvolvedor, num arquivo JSON. Não há painel nem login. |
 | Tecnologia | HTML, CSS e JavaScript puros, sem build e sem framework. |
 | Dados | Os bolos ficam em `data/menu.json`, só dados, sem código. |
-| Publicação | GitHub Pages ou Netlify, gratuitos. A escolha fica para o fim e não muda o código. |
+| Publicação | Netlify, plano gratuito, em https://deliciasdaca.netlify.app/. O Netlify publica só os arquivos listados no `netlify.toml` (copiados para `dist/`), não o repositório inteiro. |
 
 ## Convenções de código
 
 - Todo o código fica em inglês: identificadores (variáveis, funções e constantes), comentários, descrições e mensagens dos testes, nomes de arquivo, chaves do JSON, ids do HTML, classes e propriedades personalizadas do CSS e mensagens de console.
 - Só fica em português o que o usuário final vê: os textos, títulos e rótulos da página, a mensagem do WhatsApp, os atributos `alt` e `aria-label`, o `<title>`, a meta description e as tags Open Graph, os avisos e o `name` de cada bolo.
 - Exceção deliberada: os valores de `id` dos bolos (por exemplo, `cenoura-vulcao`) e os nomes das fotos derivados deles (`cenoura-vulcao.webp`) seguem o nome do produto, em português. O mesmo vale para `lang="pt-BR"` e `Intl.NumberFormat('pt-BR', ...)`.
-- A documentação (README, spec e plano) continua em português, mas todo identificador, caminho, classe ou chave citado nela usa os nomes em inglês.
+- A documentação (spec e plano) continua em português, exceto o `README.md`, que é escrito em inglês por ser a página do projeto no GitHub. Em todos os documentos, todo identificador, caminho, classe ou chave citado usa os nomes em inglês.
 
 ## Estrutura da página
 
@@ -97,6 +97,8 @@ Os preços vêm da imagem do cardápio atual.
 ```
 index.html
 favicon.svg                → ícone da aba: um bolo de forma desenhado em SVG
+og-image.jpg               → prévia do link no WhatsApp e no Instagram (JPEG, 1200x630)
+netlify.toml               → o que o Netlify publica: copia só os arquivos do site para dist/
 css/style.css
 data/menu.json
 js/whatsapp.js             → funções puras: montar o link e formatar o preço
@@ -105,7 +107,9 @@ scripts/photo-lib.mjs      → funções puras do conversor de fotos
 scripts/prepare-photos.mjs → converte as fotos de fotos-originais/ para img/*.webp
 img/                       → fotos otimizadas
 tests/                     → testes
+.gitignore                 → ignora, entre outros, dist/ (a pasta que o build do Netlify gera)
 package.json               → só "name", "private", "type" e o script "test"; sem dependências
+README.md                  → página do projeto no GitHub, em inglês
 ```
 
 `js/whatsapp.js` é um módulo ES, carregado pelo navegador por `<script type="module">` e importado pelos testes no Node.
@@ -138,7 +142,12 @@ package.json               → só "name", "private", "type" e o script "test"; 
 
 ## Compartilhamento
 
-A página tem `title`, `meta description` e tags Open Graph (`og:title`, `og:description`, `og:image`). Assim o link aparece com prévia quando for enviado no WhatsApp ou no Instagram. O `og:image` precisa de uma URL absoluta, que só existe depois da publicação.
+A página tem `title`, `meta description` e tags Open Graph, para o link aparecer com prévia no WhatsApp e no Instagram: `og:title`, `og:description`, `og:url` (`https://deliciasdaca.netlify.app/`), `og:image`, `og:image:width`, `og:image:height` e `og:image:alt`.
+
+- O `og:image` é o JPEG `og-image.jpg`, na raiz do repositório, com 1200x630px e menos de 300 KB (hoje uns 230 KB). Não é o WebP: o WhatsApp e o Instagram leem JPEG e PNG com mais confiança, e preferem imagens leves.
+- A imagem é um recorte do `img/hero.webp` que enquadra os cinco bolos em fila. Para gerar de novo: converter o WebP para PNG com o `sips`, recortar 1200x630 a partir da linha 130 e gravar em JPEG com qualidade 78 (o passo a passo está na Task 9 do plano). A foto de origem não tem metadados: o JPEG só leva as medidas da imagem, sem GPS nem dados de câmera.
+- O `og:image` e o `og:url` são URLs absolutas e ficam na mesma origem. Se o nome do site no Netlify for outro, as duas tags precisam trocar de endereço juntas.
+- O WhatsApp guarda as prévias em cache. Para testar de novo depois de uma mudança, acrescente `?v=2` ao link.
 
 ## Acessibilidade
 
@@ -155,7 +164,8 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 - **Link do WhatsApp:** número correto, mensagem codificada, nome com acento e com espaço (ex.: "Paçoca vulcão"), botão geral sem bolo.
 - **Preço:** `50` vira `R$ 50,00`; `30` vira `R$ 30,00`.
 - **`menu.json`:** é um JSON válido (o que pega a vírgula sobrando antes de publicar), e cada item tem `id`, `name`, `price` (número positivo) e `photo`, que tem de ser o `id` mais `.webp`. A quantidade de bolos é conferida contra uma constante nomeada (`EXPECTED_COUNT`), e `id` repetido é reportado pelo nome.
-- **`index.html`:** todos os links do WhatsApp são o link geral, e a quantidade deles é conferida contra uma constante nomeada (`EXPECTED_WHATSAPP_LINK_COUNT`). Os links que abrem em nova aba têm `rel="noopener noreferrer"`. O aviso de erro começa oculto e o `<noscript>` oferece o WhatsApp. O favicon (`favicon.svg`) referenciado no `<head>` tem de existir.
+- **`index.html`:** todos os links do WhatsApp são o link geral, e a quantidade deles é conferida contra uma constante nomeada (`EXPECTED_WHATSAPP_LINK_COUNT`). Os links que abrem em nova aba têm `rel="noopener noreferrer"`. O aviso de erro começa oculto e o `<noscript>` oferece o WhatsApp. O favicon (`favicon.svg`) referenciado no `<head>` tem de existir. A prévia do link é conferida: `og:url` é uma URL `https://` absoluta que termina em `/`; `og:image` é absoluta, na mesma origem do `og:url`, e o caminho dela existe como arquivo na raiz do repositório; esse arquivo é JPEG ou PNG (conferido pelos primeiros bytes) e tem até 300 KB; `og:image:width` e `og:image:height` são numéricos e iguais às medidas reais da imagem (o teste lê as medidas do próprio JPEG, sem dependências); `og:image:alt` não está vazio.
+- **`netlify.test.js`:** confere o que vai ao ar. As duas chaves do `netlify.toml` (`command` e `publish`) são lidas com expressões regulares simples, sem biblioteca de TOML. O `publish` é `dist` e o `cp -R` do comando copia para essa mesma pasta; cada caminho copiado existe no repositório (pega erro de digitação e um `og-image.jpg` esquecido); tudo o que o `index.html` usa (`href` e `src` locais e o caminho do `og:image`), o `MENU_URL` e o `PHOTOS_DIR` do `js/app.js` e os módulos que os `js/*.js` importam está coberto pela lista copiada; a lista não contém `docs`, `tests`, `scripts`, `.claude`, `fotos-originais`, `node_modules`, `package.json` nem `.git` (nem `.` ou `*`). Por fim, o comando de build roda de verdade numa cópia temporária do repositório (arquivos do Git, num diretório temporário apagado no fim) e o `dist/` tem `index.html`, `favicon.svg`, `og-image.jpg`, `css/style.css`, `js/app.js`, `js/whatsapp.js`, `data/menu.json` e `img/hero.webp`, e não tem `docs` nem `tests`. Esse último teste é pulado, com o motivo, onde faltam o `sh` ou o Git.
 - **`app.js`:** busca o `menu.json` revalidando o cache a cada visita, para que uma mudança de preço apareça logo após a publicação, e um teste confere isso.
 - **`photos.test.js`:** valida as fotos que existem em `img/`: cada arquivo tem de ser citado no `data/menu.json` (ou ser o `hero.webp`) e passar no `checkWebp` de `scripts/photo-lib.mjs` (container WebP íntegro, até 200 KB, sem EXIF nem XMP), a mesma checagem que o conversor faz ao gravar. A falta de uma foto não reprova: o teste lista os bolos ainda sem foto (e se o `hero.webp` já existe) sem falhar.
 - **`photo-lib.test.js`:** as funções puras do conversor (`scripts/photo-lib.mjs`): quando reduzir (nunca ampliar; exatamente 800px não reduz), leitura de BMP de 24 e 32 bits (de baixo para cima e de cima para baixo, com a sobra de bytes no fim de cada linha), detecção das tarjas pretas (inclusive o caso real de 540x1158, com recorte de 4px, e a faixa de 5 linhas do `hero.png`, que passa do mínimo de 4px), correspondência exata do nome do arquivo com o `id` (maiúsculas, acento decomposto, arquivo oculto) e a validação do WebP (container, tamanho, EXIF e XMP). O limite de 200 KB (`MAX_BYTES`) tem um só lugar: o `photos.test.js` o importa dessa biblioteca.
@@ -164,7 +174,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 
 ## Como rodar localmente
 
-O navegador bloqueia a leitura do JSON e também os módulos JavaScript quando o `index.html` é aberto com duplo clique, e a página fica sem cardápio (só o título). Para ver o site, use um servidor local, por exemplo `python3 -m http.server`, e abra `http://localhost:8000`. No GitHub Pages e no Netlify isso funciona sem ajuste.
+O navegador bloqueia a leitura do JSON e também os módulos JavaScript quando o `index.html` é aberto com duplo clique, e a página fica sem cardápio (só o título). Para ver o site, use um servidor local, por exemplo `python3 -m http.server`, e abra `http://localhost:8000`. No Netlify isso funciona sem ajuste.
 
 ## Fora do escopo
 
@@ -173,12 +183,13 @@ Carrinho, filtros e busca, painel de edição, pagamento online, frete por bairr
 ## Cuidados com o repositório
 
 - A pasta `.superpowers/` (usada só nesta fase de design) entra no `.gitignore`.
-- Os dois prints na raiz (`Screenshot 2026-10-29 at ...png`) são material de referência e mostram o WhatsApp Web pessoal. Eles não devem ir para o site publicado nem para o repositório público. Devem sair da raiz ou ser ignorados.
+- Os dois prints na raiz (`Screenshot 2026-10-29 at ...png`) são material de referência e mostram o WhatsApp Web pessoal. Eles não devem ir para o site publicado nem para o repositório público. Devem sair da raiz ou ser ignorados (o `.gitignore` os ignora, e o build do Netlify só copia os arquivos da lista do `netlify.toml`, então a raiz nunca é publicada por inteiro).
 - A pasta `fotos-originais/` (as fotos enviadas, antes da otimização) entra no `.gitignore`: só as versões otimizadas de `img/` vão para o repositório.
+- A pasta `dist/`, gerada pelo build do Netlify, também entra no `.gitignore`.
 
 ## Pontos em aberto
 
 - **Horários:** a imagem original está cortada no fim. A leitura acima precisa de confirmação da Cá.
 - **Grafia:** o nome está como no cardápio ("Delicias da Cá", sem acento no "i"). Confirmar se é intencional.
-- **Fotos:** chegaram 10 das 18 fotos de bolos. Faltam `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`, e a foto de destaque do topo (`hero.webp`) ainda não foi entregue. Cada foto nova precisa vir com o sabor identificado.
-- **Hospedagem e endereço:** GitHub Pages ou Netlify, e se haverá domínio próprio. Isso define a URL do `og:image`.
+- **Fotos:** a foto de destaque do topo (`hero.webp`) já está no repositório e chegaram 10 das 18 fotos de bolos. Faltam 8: `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`. Cada foto nova precisa vir com o sabor identificado.
+- **Site no Netlify:** a hospedagem está decidida (Netlify, plano gratuito, https://deliciasdaca.netlify.app/). Falta o dono criar o site (**Add new site** -> **Import an existing project** -> GitHub -> `delicias-da-ca`) e, depois do primeiro deploy, trocar o nome do site para `deliciasdaca` (**Site configuration** -> **Change site name**). Se o nome estiver ocupado, as tags `og:url` e `og:image` do `index.html` precisam do endereço novo. Depois, testar a prévia do link enviando-o a si mesmo no WhatsApp.
