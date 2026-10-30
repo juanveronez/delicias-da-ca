@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://deliciasdaca.netlify.app/">
+<a href="https://delicias-da-ca.netlify.app/">
   <img src="og-image.jpg" alt="Five homemade ring cakes lined up on a kitchen counter" width="720">
 </a>
 
@@ -8,7 +8,7 @@
 
 **A mobile-first online menu for homemade ring cakes in Campinas/SP, where every cake has an "order on WhatsApp" button.**
 
-[deliciasdaca.netlify.app](https://deliciasdaca.netlify.app/)
+[delicias-da-ca.netlify.app](https://delicias-da-ca.netlify.app/)
 
 [![Node 22](https://img.shields.io/badge/Node-22-339933)](#-getting-started)
 [![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](package.json)
@@ -197,13 +197,13 @@ The photos test never fails because a photo is missing. It prints a diagnostic l
 
 ## 🌐 Deployment
 
-The site is hosted on Netlify (free plan) at <https://deliciasdaca.netlify.app/>.
+The site is hosted on Netlify (free plan) at <https://delicias-da-ca.netlify.app/>.
 
 First time, with the repository on GitHub:
 
 1. In Netlify: **Add new site** -> **Import an existing project** -> **GitHub** -> pick the `delicias-da-ca` repository.
 2. The build settings come from [`netlify.toml`](netlify.toml): there is nothing to type. Confirm the deploy.
-3. After the first deploy: **Site configuration** -> **Change site name** -> `deliciasdaca`. The `og:url` and `og:image` tags in [`index.html`](index.html) assume `https://deliciasdaca.netlify.app/`. If you have to pick another name, change the address in both tags.
+3. The site name is `delicias-da-ca`, so the address is `https://delicias-da-ca.netlify.app/` (**Site configuration** -> **Change site name** changes it). The `og:url` and `og:image` tags in [`index.html`](index.html) must use exactly this address: WhatsApp fetches the preview image from the URL written there, so if the name ever changes, change both tags.
 
 From then on every push to `main` deploys by itself.
 
@@ -219,7 +219,7 @@ From then on every push to `main` deploys by itself.
 
 **Link preview.** [`og-image.jpg`](og-image.jpg) is what WhatsApp and Instagram show when the link is shared. It is a 1200x630 JPEG of about 230 KB, cropped from `img/hero.webp` (a WebP is not reliable for previews). To replace it, keep the format, the 1200x630 size and a weight under 300 KB: `npm test` checks all three and the `og:image:width`/`og:image:height` tags. The steps used to generate it are in Task 9 of the [implementation plan](docs/superpowers/plans/2026-10-29-cardapio-online.md).
 
-To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previews, so to test again after a change append `?v=2` to the link (`https://deliciasdaca.netlify.app/?v=2`). The Facebook Sharing Debugger is an optional second opinion.
+To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previews, so to test again after a change append `?v=2` to the link (`https://delicias-da-ca.netlify.app/?v=2`). The Facebook Sharing Debugger is an optional second opinion.
 
 ## 📐 Conventions
 

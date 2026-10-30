@@ -26,7 +26,7 @@ Um cardápio online para a Delicias da Cá vender bolos caseiros em Campinas/SP,
 | Manutenção | Quem edita o cardápio é o desenvolvedor, num arquivo JSON. Não há painel nem login. |
 | Tecnologia | HTML, CSS e JavaScript puros, sem build e sem framework. |
 | Dados | Os bolos ficam em `data/menu.json`, só dados, sem código. |
-| Publicação | Netlify, plano gratuito, em https://deliciasdaca.netlify.app/. O Netlify publica só os arquivos listados no `netlify.toml` (copiados para `dist/`), não o repositório inteiro. |
+| Publicação | Netlify, plano gratuito, em https://delicias-da-ca.netlify.app/. O Netlify publica só os arquivos listados no `netlify.toml` (copiados para `dist/`), não o repositório inteiro. |
 
 ## Convenções de código
 
@@ -142,7 +142,7 @@ README.md                  → página do projeto no GitHub, em inglês
 
 ## Compartilhamento
 
-A página tem `title`, `meta description` e tags Open Graph, para o link aparecer com prévia no WhatsApp e no Instagram: `og:title`, `og:description`, `og:url` (`https://deliciasdaca.netlify.app/`), `og:image`, `og:image:width`, `og:image:height` e `og:image:alt`.
+A página tem `title`, `meta description` e tags Open Graph, para o link aparecer com prévia no WhatsApp e no Instagram: `og:title`, `og:description`, `og:url` (`https://delicias-da-ca.netlify.app/`), `og:image`, `og:image:width`, `og:image:height` e `og:image:alt`.
 
 - O `og:image` é o JPEG `og-image.jpg`, na raiz do repositório, com 1200x630px e menos de 300 KB (hoje uns 230 KB). Não é o WebP: o WhatsApp e o Instagram leem JPEG e PNG com mais confiança, e preferem imagens leves.
 - A imagem é um recorte do `img/hero.webp` que enquadra os cinco bolos em fila. Para gerar de novo: converter o WebP para PNG com o `sips`, recortar 1200x630 a partir da linha 130 e gravar em JPEG com qualidade 78 (o passo a passo está na Task 9 do plano). A foto de origem não tem metadados: o JPEG só leva as medidas da imagem, sem GPS nem dados de câmera.
@@ -192,4 +192,4 @@ Carrinho, filtros e busca, painel de edição, pagamento online, frete por bairr
 - **Horários:** a imagem original está cortada no fim. A leitura acima precisa de confirmação da Cá.
 - **Grafia:** o nome está como no cardápio ("Delicias da Cá", sem acento no "i"). Confirmar se é intencional.
 - **Fotos:** a foto de destaque do topo (`hero.webp`) já está no repositório e chegaram 10 das 18 fotos de bolos. Faltam 8: `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`. Cada foto nova precisa vir com o sabor identificado.
-- **Site no Netlify:** a hospedagem está decidida (Netlify, plano gratuito, https://deliciasdaca.netlify.app/). Falta o dono criar o site (**Add new site** -> **Import an existing project** -> GitHub -> `delicias-da-ca`) e, depois do primeiro deploy, trocar o nome do site para `deliciasdaca` (**Site configuration** -> **Change site name**). Se o nome estiver ocupado, as tags `og:url` e `og:image` do `index.html` precisam do endereço novo. Depois, testar a prévia do link enviando-o a si mesmo no WhatsApp.
+- **Site no Netlify:** o site foi criado com o nome `delicias-da-ca` (https://delicias-da-ca.netlify.app/, plano gratuito), e as tags `og:url` e `og:image` do `index.html` usam esse endereço; se o nome mudar, as duas precisam do endereço novo, porque o WhatsApp busca a imagem da prévia pelo endereço escrito nelas. Falta testar a prévia do link enviando-o a si mesmo no WhatsApp (acrescentar `?v=2` ao link para repetir o teste).

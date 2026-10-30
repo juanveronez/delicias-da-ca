@@ -504,7 +504,7 @@ Expected: `tests/index.test.js` falha com `ENOENT` para `index.html`.
 
 O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%2C%20C%C3%A1!%20Vim%20pelo%20card%C3%A1pio%20online%20e%20gostaria%20de%20fazer%20uma%20encomenda.` em quatro lugares. Ele precisa ser idêntico ao `GENERAL_LINK` (o teste confere). O link está escrito direto no HTML porque o botão do topo precisa funcionar mesmo sem JavaScript.
 
-As tags de prévia do link (`og:url`, `og:image`, `og:image:width`, `og:image:height` e `og:image:alt`) já entram aqui com o endereço final do site, `https://deliciasdaca.netlify.app/`. O `og:image` aponta para o `og-image.jpg`, um JPEG de 1200x630 recortado do `img/hero.webp`, que a Task 9 (Step 1) ensina a gerar.
+As tags de prévia do link (`og:url`, `og:image`, `og:image:width`, `og:image:height` e `og:image:alt`) já entram aqui com o endereço final do site, `https://delicias-da-ca.netlify.app/`. O `og:image` aponta para o `og-image.jpg`, um JPEG de 1200x630 recortado do `img/hero.webp`, que a Task 9 (Step 1) ensina a gerar.
 
 ```html
 <!DOCTYPE html>
@@ -519,8 +519,8 @@ As tags de prévia do link (`og:url`, `og:image`, `og:image:width`, `og:image:he
   <meta property="og:locale" content="pt_BR">
   <meta property="og:title" content="Delicias da Cá · Bolos caseiros em Campinas">
   <meta property="og:description" content="Bolos caseiros com entrega em Campinas/SP. Veja o cardápio e peça pelo WhatsApp.">
-  <meta property="og:url" content="https://deliciasdaca.netlify.app/">
-  <meta property="og:image" content="https://deliciasdaca.netlify.app/og-image.jpg">
+  <meta property="og:url" content="https://delicias-da-ca.netlify.app/">
+  <meta property="og:image" content="https://delicias-da-ca.netlify.app/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Cinco bolos caseiros da Delicias da Cá enfileirados sobre a bancada">
@@ -1220,7 +1220,7 @@ Quando chegarem as fotos que faltam (e a de destaque), repita os passos 4 a 8: o
 
 ### Task 9: Prévia do link, publicação no Netlify e README
 
-**Gate:** a hospedagem está decidida: Netlify, plano gratuito, no endereço https://deliciasdaca.netlify.app/. O site no Netlify só é criado pelo dono, no fim (Step 8); nada antes disso depende dele. O Step 1 precisa do `img/hero.webp` (Task 8), porque a imagem da prévia do link é recortada dela.
+**Gate:** a hospedagem está decidida: Netlify, plano gratuito, no endereço https://delicias-da-ca.netlify.app/. O site no Netlify só é criado pelo dono, no fim (Step 8); nada antes disso depende dele. O Step 1 precisa do `img/hero.webp` (Task 8), porque a imagem da prévia do link é recortada dela.
 
 **Por que um build que só copia arquivos.** O Netlify publica a pasta que se indicar, e a raiz do repositório também guarda `docs/`, `tests/`, `scripts/`, `.claude/`, `package.json` e outros arquivos que não podem ir ao ar. O `netlify.toml` manda copiar só os arquivos do site para `dist/` e publicar essa pasta. O Netlify roda o `command` num shell POSIX, então um `cp -R` simples basta.
 
@@ -1479,7 +1479,7 @@ Substituir o conteúdo atual por:
 ````markdown
 <div align="center">
 
-<a href="https://deliciasdaca.netlify.app/">
+<a href="https://delicias-da-ca.netlify.app/">
   <img src="og-image.jpg" alt="Five homemade ring cakes lined up on a kitchen counter" width="720">
 </a>
 
@@ -1487,7 +1487,7 @@ Substituir o conteúdo atual por:
 
 **A mobile-first online menu for homemade ring cakes in Campinas/SP, where every cake has an "order on WhatsApp" button.**
 
-[deliciasdaca.netlify.app](https://deliciasdaca.netlify.app/)
+[delicias-da-ca.netlify.app](https://delicias-da-ca.netlify.app/)
 
 [![Node 22](https://img.shields.io/badge/Node-22-339933)](#-getting-started)
 [![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](package.json)
@@ -1676,13 +1676,13 @@ The photos test never fails because a photo is missing. It prints a diagnostic l
 
 ## 🌐 Deployment
 
-The site is hosted on Netlify (free plan) at <https://deliciasdaca.netlify.app/>.
+The site is hosted on Netlify (free plan) at <https://delicias-da-ca.netlify.app/>.
 
 First time, with the repository on GitHub:
 
 1. In Netlify: **Add new site** -> **Import an existing project** -> **GitHub** -> pick the `delicias-da-ca` repository.
 2. The build settings come from [`netlify.toml`](netlify.toml): there is nothing to type. Confirm the deploy.
-3. After the first deploy: **Site configuration** -> **Change site name** -> `deliciasdaca`. The `og:url` and `og:image` tags in [`index.html`](index.html) assume `https://deliciasdaca.netlify.app/`. If you have to pick another name, change the address in both tags.
+3. The site name is `delicias-da-ca`, so the address is `https://delicias-da-ca.netlify.app/` (**Site configuration** -> **Change site name** changes it). The `og:url` and `og:image` tags in [`index.html`](index.html) must use exactly this address: WhatsApp fetches the preview image from the URL written there, so if the name ever changes, change both tags.
 
 From then on every push to `main` deploys by itself.
 
@@ -1698,7 +1698,7 @@ From then on every push to `main` deploys by itself.
 
 **Link preview.** [`og-image.jpg`](og-image.jpg) is what WhatsApp and Instagram show when the link is shared. It is a 1200x630 JPEG of about 230 KB, cropped from `img/hero.webp` (a WebP is not reliable for previews). To replace it, keep the format, the 1200x630 size and a weight under 300 KB: `npm test` checks all three and the `og:image:width`/`og:image:height` tags. The steps used to generate it are in Task 9 of the [implementation plan](docs/superpowers/plans/2026-10-29-cardapio-online.md).
 
-To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previews, so to test again after a change append `?v=2` to the link (`https://deliciasdaca.netlify.app/?v=2`). The Facebook Sharing Debugger is an optional second opinion.
+To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previews, so to test again after a change append `?v=2` to the link (`https://delicias-da-ca.netlify.app/?v=2`). The Facebook Sharing Debugger is an optional second opinion.
 
 ## 📐 Conventions
 
@@ -1729,12 +1729,12 @@ git commit -m "docs: README final e publicação no Netlify"
 - Antes de enviar ao GitHub: conferir o e-mail do autor dos commits (`git log --format='%an <%ae>'`); em repositório público ele fica visível.
 - Terminar a branch `feat/cardapio-online` com a skill `superpowers:finishing-a-development-branch` (merge na `main` e envio ao GitHub). Merge e push só acontecem com o pedido do usuário.
 - O dono cria o site no Netlify (o Netlify lê o `netlify.toml`, então não há nada para preencher no build): **Add new site** -> **Import an existing project** -> **GitHub** -> repositório `delicias-da-ca`.
-- Depois do primeiro deploy: **Site configuration** -> **Change site name** -> `deliciasdaca`. Se o nome estiver ocupado, escolher outro e trocar o endereço nas tags `og:url` e `og:image` do `index.html` (o `npm test` confere que as duas ficam na mesma origem).
+- O site se chama `delicias-da-ca`, então o endereço é https://delicias-da-ca.netlify.app/ (para mudar o nome: **Site configuration** -> **Change site name**). Se o nome mudar, trocar o endereço nas tags `og:url` e `og:image` do `index.html` (o `npm test` confere que as duas ficam na mesma origem, mas não o nome exato): o WhatsApp busca a imagem da prévia pelo endereço escrito nas tags.
 - A partir daí, cada push para a `main` publica sozinho.
 
 - [ ] **Step 9: Conferir o site publicado**
 
-- [ ] Abrir https://deliciasdaca.netlify.app/ no celular, ver os 18 cards (com foto nos bolos que já têm e o bloco marrom nos demais) e testar um botão de pedido.
-- [ ] Abrir `https://deliciasdaca.netlify.app/package.json` e `https://deliciasdaca.netlify.app/docs/`: devem dar erro 404 (página não encontrada), provando que só os arquivos do site foram publicados.
-- [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto dos bolos). O WhatsApp guarda as prévias em cache: para testar de novo, acrescentar `?v=2` ao link. Se a foto não aparecer, abrir https://deliciasdaca.netlify.app/og-image.jpg no navegador para ver se o arquivo está no ar.
+- [ ] Abrir https://delicias-da-ca.netlify.app/ no celular, ver os 18 cards (com foto nos bolos que já têm e o bloco marrom nos demais) e testar um botão de pedido.
+- [ ] Abrir `https://delicias-da-ca.netlify.app/package.json` e `https://delicias-da-ca.netlify.app/docs/`: devem dar erro 404 (página não encontrada), provando que só os arquivos do site foram publicados.
+- [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto dos bolos). O WhatsApp guarda as prévias em cache: para testar de novo, acrescentar `?v=2` ao link. Se a foto não aparecer, abrir https://delicias-da-ca.netlify.app/og-image.jpg no navegador para ver se o arquivo está no ar.
 - [ ] Confirmar com a Cá os horários de encomenda e a grafia "Delicias" (pontos em aberto da spec).
