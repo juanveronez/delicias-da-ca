@@ -57,3 +57,84 @@ test('index.html links a favicon that exists', async () => {
   assert.ok(href, 'expected a <link rel="icon" href="..."> in index.html');
   await access(new URL(`../${href}`, import.meta.url));
 });
+
+// WhatsApp and Instagram fetch the preview image by its absolute URL, so the
+// tests check that URL, the file behind it and the size declared in the tags.
+const PREVIEW_IMAGE_MAX_BYTES = 300 * 1024;
+const JPEG_MAGIC = [0xff, 0xd8, 0xff];
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+function metaContent(property) {
+  return new RegExp(`<meta property="${property}" content="([^"]*)">`).exec(html)?.[1];
+}
+
+function startsWith(bytes, magic) {
+  return magic.every((byte, i) => bytes[i] === byte);
+}
+
+// Width and height without any dependency. A PNG keeps them in the first chunk
+// (IHDR, bytes 16 to 23). A JPEG is a chain of marker segments; the Start Of
+// Frame segment (SOF0 baseline, SOF1 or SOF2 progressive) has them after the
+// marker (2 bytes), the length (2) and the precision (1).
+function readImageSize(bytes) {
+  if (startsWith(bytes, PNG_MAGIC)) {
+    return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  }
+  let offset = 2; // skip the start-of-image marker (FF D8)
+  while (offset + 4 <= bytes.length && bytes[offset] === 0xff) {
+    const marker = bytes[offset + 1];
+    if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
+      return { height: bytes.readUInt16BE(offset + 5), width: bytes.readUInt16BE(offset + 7) };
+    }
+    offset += 2 + bytes.readUInt16BE(offset + 2);
+  }
+  return null;
+}
+
+async function loadPreviewImage() {
+  const image = metaContent('og:image');
+  assert.ok(image, 'expected <meta property="og:image" content="..."> in index.html');
+  const bytes = await readFile(new URL(`..${new URL(image).pathname}`, import.meta.url));
+  return { image, bytes };
+}
+
+test('og:url is an absolute https URL that ends with a slash', () => {
+  const pageUrl = metaContent('og:url');
+  assert.ok(pageUrl, 'expected <meta property="og:url" content="..."> in index.html');
+  assert.equal(new URL(pageUrl).protocol, 'https:');
+  assert.ok(pageUrl.endsWith('/'), `og:url should end with "/", got ${pageUrl}`);
+});
+
+test('og:image is absolute, on the same origin as og:url, and points to a file in the repo', async () => {
+  const pageUrl = metaContent('og:url');
+  const image = metaContent('og:image');
+  assert.ok(pageUrl && image, 'expected og:url and og:image in index.html');
+  assert.match(image, /^https:\/\//, `og:image should be an absolute https URL, got ${image}`);
+  assert.equal(new URL(image).origin, new URL(pageUrl).origin, 'og:image and og:url are on different origins');
+  await loadPreviewImage(); // throws if the file is missing at the repo root
+});
+
+test('the preview image is a JPEG or PNG of at most 300 KB', async () => {
+  const { image, bytes } = await loadPreviewImage();
+  assert.ok(
+    startsWith(bytes, JPEG_MAGIC) || startsWith(bytes, PNG_MAGIC),
+    `${image} is not a JPEG or PNG (WhatsApp may ignore other formats, such as WebP)`,
+  );
+  assert.ok(
+    bytes.length <= PREVIEW_IMAGE_MAX_BYTES,
+    `${image} has ${bytes.length} bytes; WhatsApp may drop images above ${PREVIEW_IMAGE_MAX_BYTES}`,
+  );
+});
+
+test('og:image:width and og:image:height are the real size of the preview image', async () => {
+  const { bytes } = await loadPreviewImage();
+  const width = metaContent('og:image:width');
+  const height = metaContent('og:image:height');
+  assert.match(width ?? '', /^\d+$/, `og:image:width should be a number, got ${width}`);
+  assert.match(height ?? '', /^\d+$/, `og:image:height should be a number, got ${height}`);
+  assert.deepEqual({ width: Number(width), height: Number(height) }, readImageSize(bytes));
+});
+
+test('og:image:alt is not empty', () => {
+  assert.match(metaContent('og:image:alt') ?? '', /\S/);
+});
