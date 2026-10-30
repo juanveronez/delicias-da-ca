@@ -6,7 +6,7 @@
 
 **Architecture:** Página única (`index.html`) em HTML, CSS e JavaScript puros, sem build. Os bolos vêm de `data/menu.json`; `js/app.js` busca o JSON e monta os cards com `textContent`. A lógica que não pode quebrar (link do WhatsApp e formatação de preço) fica em `js/whatsapp.js`, um módulo ES de funções puras, testado com o executor nativo do Node (`node --test`).
 
-**Tech Stack:** HTML5, CSS3, JavaScript (módulos ES), Node 22 (`node:test`, sem dependências), `python3 -m http.server` para ver o site localmente, `cwebp` (Homebrew `webp`) para converter fotos.
+**Tech Stack:** HTML5, CSS3, JavaScript (módulos ES), Node 22 (`node:test`, sem dependências), `python3 -m http.server` para ver o site localmente, `sips` (macOS) e `cwebp` (Homebrew `webp`), usados pelo `scripts/prepare-photos.mjs` para converter fotos.
 
 **Spec:** `docs/superpowers/specs/2026-10-29-cardapio-online-design.md`
 
@@ -36,6 +36,10 @@
 | `tests/index.test.js` | Garante que os links e meta tags do `index.html` estão corretos. |
 | `tests/app.test.js` | Garante que `js/app.js` não injeta HTML e usa `rel` seguro. |
 | `tests/photos.test.js` | (Task 8) Garante que cada foto presente em `img/` é citada no `data/menu.json` (ou é `hero.webp`), é WebP e é leve. Lista os bolos ainda sem foto, sem falhar. |
+| `scripts/photo-lib.mjs` | (Task 8) Funções puras do conversor de fotos: decidir se precisa reduzir (nunca amplia), ler BMP, achar tarjas pretas, casar o nome do arquivo com o `id` e validar o WebP. Sem efeitos colaterais. |
+| `scripts/prepare-photos.mjs` | (Task 8) O comando `node scripts/prepare-photos.mjs`: converte as fotos de `fotos-originais/` em `img/<id>.webp`. Usa `sips` (macOS) e `cwebp`. |
+| `tests/photo-lib.test.js` | (Task 8) Testa `scripts/photo-lib.mjs`. |
+| `tests/prepare-photos.test.js` | (Task 8) Testa o comando de ponta a ponta com imagens sintéticas. É pulado quando faltam `sips` ou `cwebp`. |
 | `img/` | Fotos otimizadas (Task 8), que podem chegar em lotes. |
 | `README.md` | Como editar o cardápio, rodar, testar e publicar. |
 
@@ -1011,13 +1015,14 @@ git commit -m "fix: ajustes encontrados na conferência no navegador"
 
 ### Task 8: Fotos dos bolos
 
-**Gate:** as fotos podem chegar em lotes, então não é preciso esperar pelas 18 nem pela foto de destaque do topo. Converta as que já foram entregues, cada uma identificada pelo `id` do bolo. Um bolo sem foto é um estado permitido: o card mostra o bloco marrom, e o teste só lista quais ainda faltam, sem falhar. Sem `img/hero.webp`, o topo da página fica sem foto. Sugestão: uma pasta com os arquivos `.jpg` (em minúsculas) nomeados pelo `id`, como `cenoura-vulcao.jpg`, e a foto de destaque como `hero.jpg`. Neste repositório a pasta é `fotos-originais/`, que está no `.gitignore` (só as versões otimizadas de `img/` vão para o Git); outra opção é `~/Pictures/cake-photos/`. Exportações do iPhone costumam vir como `.HEIC`, `.JPG` ou `.jpeg`: converta antes cada uma com `sips -s format jpeg "<origem>" --out "<pasta>/<id>.jpg"`. O laço do passo 4 só enxerga `*.jpg`, e o zsh aborta com `no matches found` quando nenhum arquivo casa. Os prints da raiz **não** servem: têm texto sobreposto.
+**Gate:** as fotos podem chegar em lotes, então não é preciso esperar pelas 18 nem pela foto de destaque do topo. Converta as que já foram entregues, cada uma identificada pelo `id` do bolo. Um bolo sem foto é um estado permitido: o card mostra o bloco marrom, e o teste só lista quais ainda faltam, sem falhar. Sem `img/hero.webp`, o topo da página fica sem foto. A pasta de origem tem um arquivo por foto, nomeado pelo `id` do bolo, como `cenoura-vulcao.jpg`, e a foto de destaque como `hero.jpg`. Servem `.jpg`, `.jpeg`, `.png` e `.heic`, em maiúsculas ou minúsculas: as exportações do iPhone (`.HEIC`, `.JPG`) entram como vêm, sem conversão prévia. Neste repositório a pasta é `fotos-originais/`, que está no `.gitignore` (só as versões otimizadas de `img/` vão para o Git); outra opção é `~/Pictures/cake-photos/`. Os prints da raiz **não** servem: têm texto sobreposto.
 
 Primeiro lote (entregue em 30/10/2026): chegaram 10 das 18 fotos (`banana`, `cenoura-brigadeiro`, `cenoura-chocolate`, `chocolate-brigadeiro`, `fuba-goiabada`, `laranja`, `limao`, `ninho-cobertura`, `ninho-vulcao` e `pacoca-vulcao`). Faltam `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`, além da foto de destaque.
 
 **Files:**
 - Create: `tests/photos.test.js`
 - Create: `img/<id>.webp` para cada foto já entregue (10 das 18 no primeiro lote) e, quando existir, `img/hero.webp`
+- Usa, sem alterar (já estão no repositório): `scripts/photo-lib.mjs`, `scripts/prepare-photos.mjs`, `tests/photo-lib.test.js` e `tests/prepare-photos.test.js`
 
 - [ ] **Step 1: Escrever o teste**
 
@@ -1058,79 +1063,59 @@ test('lists the cakes that still have no photo', (t) => {
 - [ ] **Step 2: Rodar e ver a lista de sabores sem foto**
 
 Run: `npm test`
-Expected: este teste não tem fase vermelha, porque a falta de foto é permitida. Sem a pasta `img/`, `ℹ fail 0` e 22 testes passam (os 21 anteriores e o que lista os bolos sem foto), com uma linha de diagnóstico como `18 cake(s) without a photo yet: banana, cenoura, ...; hero.webp missing`.
+Expected: este teste não tem fase vermelha, porque a falta de foto é permitida. Sem a pasta `img/`, `ℹ fail 0`, e passam os 21 testes anteriores, os do conversor (`tests/photo-lib.test.js` e `tests/prepare-photos.test.js`) e o que lista os bolos sem foto, com uma linha de diagnóstico como `18 cake(s) without a photo yet: banana, cenoura, ...; hero.webp missing`.
 
 - [ ] **Step 3: Instalar o conversor (peça confirmação ao usuário antes)**
 
-O macOS sabe ler WebP mas não gravar. O `cwebp` vem do pacote `webp` do Homebrew.
+O macOS sabe ler WebP mas não gravar. O `cwebp` vem do pacote `webp` do Homebrew. O comando do passo 4 também usa o `sips`, que já vem no macOS. Dentro do Claude Code o Homebrew não roda (sandbox): se o `cwebp` não existir, peça ao usuário para rodar `brew install webp` num Terminal comum, em vez de tentar instalar por aqui.
 
 Run: `command -v cwebp || brew install webp`
 Expected: o caminho do `cwebp` ou o fim da instalação.
 
-- [ ] **Step 4: Converter as fotos dos bolos (lado maior de até 800px, só reduzindo, WebP qualidade 80)**
+- [ ] **Step 4: Converter as fotos (lado maior de até 800px nos bolos e 1200px no destaque, só reduzindo, WebP qualidade 80)**
 
-Ajuste `SRC_DIR` para a pasta com as fotos do usuário (aqui, `fotos-originais`). Os arquivos precisam ser `.jpg` em minúsculas e nomeados pelo `id` (veja o Gate). O laço ignora outras extensões e, se nenhum arquivo casar com `*.jpg`, o zsh aborta com `no matches found`. O `sips -Z 800` limita o LADO MAIOR a 800px, não a largura. A função `to_webp` só reduz: o `sips -Z` também AMPLIA uma foto menor que o limite (um 540x502 viraria 800x743, mais borrado e mais pesado), então a função só chama o `-Z` quando o lado maior passa do limite.
+Quem faz o trabalho é o comando `scripts/prepare-photos.mjs`. O código dele **não** está copiado neste plano: ele mora no repositório (`scripts/photo-lib.mjs` e `scripts/prepare-photos.mjs`) e tem testes próprios (`tests/photo-lib.test.js` e `tests/prepare-photos.test.js`).
 
-```bash
-SRC_DIR="$HOME/Pictures/cake-photos"
-TMP="$(mktemp -d)"
-mkdir -p img
+Primeiro confira os nomes na pasta de origem (aqui, `fotos-originais/`). Cada arquivo tem de se chamar `<id>.jpg`, com o `id` idêntico ao do `data/menu.json` (por exemplo, `cenoura-vulcao.jpg`), ou `hero.jpg` para a foto de destaque. Também valem `.jpeg`, `.png` e `.heic`, em maiúsculas ou minúsculas. O nome tem de ser exatamente o `id`: `banana-2.jpg` ou `IMG_1234.jpg` não são convertidos e saem na lista "Skipped (name is not a cake id or hero)", com a dica `rename to <id>.jpg`. Dois arquivos para o mesmo `id` (por exemplo, `banana.jpg` e `banana.png`) interrompem o comando antes de converter qualquer foto.
 
-# Converts <source> to a WebP (quality 80) at <output>. The longest side is
-# shrunk to <max> px when it is larger; smaller photos are never enlarged.
-to_webp() {
-  local source="$1" output="$2" max="$3"
-  local width height longest png
-  width="$(sips -g pixelWidth "$source" | awk '/pixelWidth/ {print $2}')"
-  height="$(sips -g pixelHeight "$source" | awk '/pixelHeight/ {print $2}')"
-  longest=$(( width > height ? width : height ))
-  png="$TMP/$(basename "$output" .webp).png"
-  if [ "$longest" -gt "$max" ]; then
-    sips -Z "$max" -s format png "$source" --out "$png" >/dev/null
-  else
-    sips -s format png "$source" --out "$png" >/dev/null
-  fi
-  cwebp -quiet -q 80 "$png" -o "$output"
-}
-
-for original in "$SRC_DIR"/*.jpg; do
-  id="$(basename "$original" .jpg)"
-  [ "$id" = "hero" ] && continue
-  to_webp "$original" "img/$id.webp" 800
-done
-```
-
-No primeiro lote, `cenoura-brigadeiro` (720x688) e `laranja` (540x502, depois do recorte) ficaram no tamanho original; as outras oito foram reduzidas para 800px no lado maior.
-
-**Print de tela com barras pretas:** recorte a foto antes de converter. No primeiro lote, `laranja.jpg` (540x1158) era um print de celular com barras pretas em cima (linhas 0 a 322) e embaixo (linhas 835 a 1157); a foto de verdade ocupa as linhas 323 a 834. Para achar as bordas sem depender do olho, converta para BMP (`sips -s format bmp`) e calcule com `python3 -I` a luminância média de cada linha (barra preta: abaixo de 3; foto: acima de 30). As linhas 323 e 834 são de transição (meio escuras), e a foto inteira vai da 324 à 833. O recorte entra 4px além desses limites, para não sobrar linha escura nem pixel suavizado:
+Rode primeiro o ensaio, que mostra o que seria feito (medida de origem, recorte, redução e medida final) sem gravar nada, e depois a conversão:
 
 ```bash
-sips --cropToHeightWidth 502 540 --cropOffset 328 0 "$SRC_DIR/laranja.jpg" --out "$TMP/laranja-crop.jpg"
-to_webp "$TMP/laranja-crop.jpg" img/laranja.webp 800
+node scripts/prepare-photos.mjs --dry-run
+node scripts/prepare-photos.mjs
 ```
 
-O `--cropOffset` é medido a partir do canto superior esquerdo (linha, coluna), e o resultado fica com 540x502 (linhas 328 a 829 do original). Rode essas duas linhas depois do laço, que também converteu o `laranja.jpg` original (com as barras) e será sobrescrito. Confirme que a primeira e a última linha do recorte não são escuras.
+Para cada foto, o comando:
+- recorta as tarjas pretas de prints de tela (só as de 8px ou mais, com 4px de folga), aplica a rotação gravada nos metadados e **só reduz** (nunca amplia) o lado maior até 800px, ou 1200px no `hero`;
+- grava `img/<id>.webp` com qualidade 80, sem metadados, e confere o resultado: até 200 KB, container WebP íntegro, sem EXIF nem XMP. A foto que falha aparece como `FAILED` na tabela e **não** é gravada; o `img/<id>.webp` anterior, se havia, fica como estava;
+- sobrescreve a saída que já existe (a tabela diz `replaced existing`) e nunca altera nem apaga os originais.
 
-- [ ] **Step 5: Converter a foto de destaque (lado maior de até 1200px, só reduzindo)**
+O fim do comando é uma tabela com o `id`, a medida de origem, a medida final, os KB e as notas (`cropped bars`, `resized` ou `kept size`, `replaced existing`). O código de saída é 0 quando nenhuma foto falhou, 1 quando alguma falhou ou há `id` repetido, e 2 quando falta ferramenta ou o uso está errado. Opções: uma pasta de origem (padrão `fotos-originais`) e `--out <pasta>` (padrão `img`).
 
-Rode no mesmo terminal do passo 4: as variáveis `SRC_DIR` e `TMP` e a função `to_webp` precisam existir. Se o `hero.jpg` ainda não chegou, não rode a primeira linha (o topo da página fica sem foto) e rode só o `rm -r`.
+Expected: `Done: N converted, 0 failed, 0 skipped.` (nomes ignorados avisam, mas não reprovam) e um `img/<id>.webp` para cada foto da pasta.
 
-```bash
-to_webp "$SRC_DIR/hero.jpg" img/hero.webp 1200
-rm -r "$TMP"
-```
+No primeiro lote, `cenoura-brigadeiro` (720x688) e `laranja` ficaram no tamanho original; as outras oito foram reduzidas para 800px no lado maior. A `laranja.jpg` era um print de celular de 540x1158 com barras pretas em cima (linhas 0 a 322) e embaixo (835 a 1157); a foto de verdade ocupa as linhas 323 a 834. A `laranja.webp` commitada, recortada à mão, tem 540x502. O comando conta a folga de 4px a partir da primeira linha que não é preta e recorta 540x504, sem nenhuma linha escura.
+
+- [ ] **Step 5: Olhar cada foto gravada**
+
+O comando termina com o lembrete `Open each output and check flavor, rotation and crop before committing.` porque nada disso é verificável por código. Abra cada `img/<id>.webp` (por exemplo, `open img/banana.webp`) e confira:
+- o sabor é o do nome do arquivo (compare com o `name` do `data/menu.json`);
+- a foto está em pé, não de lado nem de cabeça para baixo;
+- não sobrou faixa preta nas bordas e o recorte não cortou o bolo. O comando só reconhece tarjas de 8px ou mais: uma faixa preta mais fina fica na foto, e a saída é recortar a origem e converter de novo.
+
+O `img/hero.webp` só existe se havia um `hero.jpg` (ou `.jpeg`, `.png`, `.heic`) na pasta de origem. Sem ele, o topo da página fica sem foto.
 
 - [ ] **Step 6: Rodar e ver passar**
 
 Run: `npm test`
-Expected: `ℹ fail 0`. Cada foto presente em `img/` vira um teste (`img/<arquivo> is a known, valid and light WebP`). Com as 10 fotos do primeiro lote passam 32 testes (21 anteriores, 1 que lista os bolos sem foto e 10 de foto), e a linha de diagnóstico lista os 8 bolos que faltam e `hero.webp missing`. Se alguma foto passar de 200 KB, refazer a conversão dela com `-q 70`. Se o teste disser que um arquivo "is not referenced", o nome dele não bate com o campo `photo` do `data/menu.json` (ou sobrou em `img/` um arquivo que não é foto).
+Expected: `ℹ fail 0`. Cada foto presente em `img/` vira um teste (`img/<arquivo> is a known, valid and light WebP`). Com as 10 fotos do primeiro lote, o `tests/photos.test.js` roda 11 testes (1 que lista os bolos sem foto e 10 de foto), somados aos 21 anteriores e aos do conversor, e a linha de diagnóstico lista os 8 bolos que faltam e `hero.webp missing`. Se alguma foto passar de 200 KB, o comando a marca como `FAILED` e não a grava: reduza a origem (por exemplo, recortando o que não é o bolo) e converta de novo, ou diminua `WEBP_QUALITY` em `scripts/photo-lib.mjs` (o teste de constantes em `tests/photo-lib.test.js` acompanha o valor). Se o teste disser que um arquivo "is not referenced", o nome dele não bate com o campo `photo` do `data/menu.json` (ou sobrou em `img/` um arquivo que não é foto).
 
 - [ ] **Step 7: Conferir no navegador**
 
 Subir o servidor como na Task 7 e conferir:
 - [ ] Cada card com foto mostra o bolo certo (comparar com o nome). Os cards sem foto continuam com o bloco marrom, sem imagem quebrada.
 - [ ] O topo mostra a foto de destaque, se o `hero.webp` já existe; senão, fica sem foto.
-- [ ] Nenhuma foto está girada: fotos de celular guardam a rotação nos metadados (EXIF), e a conversão pode perdê-la. Se alguma estiver de lado ou de cabeça para baixo, gire a foto de origem e converta de novo. (As fotos do primeiro lote vieram sem rotação nos metadados.)
+- [ ] Nenhuma foto está girada: fotos de celular guardam a rotação nos metadados (EXIF), e o WebP sai sem metadados. O comando aplica essa rotação antes de converter, mas confira mesmo assim. Se alguma estiver de lado ou de cabeça para baixo, gire a foto de origem e converta de novo. (As fotos do primeiro lote vieram sem rotação nos metadados.)
 - [ ] O quadrado do card (112px) mostra o bolo inteiro: o CSS corta a foto no centro (`object-fit: cover`), e uma foto bem retangular pode perder as pontas. No primeiro lote, a mais retangular é `ninho-vulcao` (800x643), e o bolo cabe no quadrado central.
 - [ ] A pasta `img/` só tem arquivos esperados. O teste já garante isso: ele falha para qualquer arquivo que não seja o `hero.webp` nem uma foto citada no `data/menu.json` (um `.png` esquecido, por exemplo).
 
@@ -1143,7 +1128,7 @@ git add img/ tests/photos.test.js
 git commit -m "feat: fotos otimizadas de 10 bolos e teste que lista os sabores sem foto"
 ```
 
-Quando chegarem as fotos que faltam (e a de destaque), repita os passos 4 a 8 só para elas: o teste mostra o que ainda resta.
+Quando chegarem as fotos que faltam (e a de destaque), repita os passos 4 a 8: o teste mostra o que ainda resta. O comando converte tudo o que está na pasta de origem e sobrescreve as saídas existentes; as fotos antigas saem idênticas, byte a byte, exceto a `laranja` (veja o passo 4). Para não mexer nas já commitadas, ponha só as novas numa pasta à parte e passe-a como origem (`node scripts/prepare-photos.mjs <pasta-das-novas>`), e use `git status` para ver o que mudou.
 
 ---
 
@@ -1195,7 +1180,18 @@ Depois de editar, rode `npm test`. Ele avisa se o JSON está quebrado (por exemp
 
 ## Fotos
 
-Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior e menos de 200 KB. Foto menor que 800px fica como está: não se amplia. A foto do topo é `img/hero.webp` (até 1200px no lado maior). Nenhuma foto é obrigatória: a que faltar não quebra a página (o card mostra um bloco marrom e o topo fica sem foto), e o `npm test` lista os bolos ainda sem foto. O teste também falha se sobrar em `img/` um arquivo que não seja o `hero.webp` nem uma foto citada no `data/menu.json`. Para converter, instale o `cwebp` (`brew install webp`) e veja a Task 8 do plano em `docs/superpowers/plans/`.
+Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior e até 200 KB. Foto menor que 800px fica como está: não se amplia. A foto do topo é `img/hero.webp` (até 1200px no lado maior). Nenhuma foto é obrigatória: a que faltar não quebra a página (o card mostra um bloco marrom e o topo fica sem foto), e o `npm test` lista os bolos ainda sem foto. O teste também falha se sobrar em `img/` um arquivo que não seja o `hero.webp` nem uma foto citada no `data/menu.json`. Para converter as fotos:
+
+1. Instale o `cwebp` uma vez, num Terminal comum (o Homebrew não roda dentro do sandbox do Claude Code): `brew install webp`. O comando também usa o `sips`, que já vem no macOS.
+2. Ponha os originais em `fotos-originais/` (a pasta fica fora do Git), um arquivo por foto, com o nome do `id` do bolo: `cenoura-vulcao.jpg`. A foto do topo se chama `hero.jpg`. Servem `.jpg`, `.jpeg`, `.png` e `.heic`.
+3. Rode:
+
+```bash
+node scripts/prepare-photos.mjs --dry-run   # só mostra o que seria feito
+node scripts/prepare-photos.mjs             # converte para img/
+```
+
+O comando recorta as tarjas pretas dos prints de tela, aplica a rotação das fotos de celular, só reduz (nunca amplia) e grava WebP com qualidade 80. Ele recusa a foto que passar de 200 KB ou que tiver metadados (EXIF ou XMP), avisa dos arquivos cujo nome não é um `id` e não altera os originais. No fim, abra cada foto de `img/` e confira sabor, rotação e recorte antes de fazer o commit.
 
 ## Testes
 

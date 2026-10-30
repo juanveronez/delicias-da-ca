@@ -96,14 +96,16 @@ Os preços vêm da imagem do cardápio atual.
 
 ```
 index.html
-favicon.svg          → ícone da aba: um cupcake desenhado em SVG
+favicon.svg                → ícone da aba: um cupcake desenhado em SVG
 css/style.css
 data/menu.json
-js/whatsapp.js       → funções puras: montar o link e formatar o preço
-js/app.js            → busca o JSON, monta os cards, trata erros
-img/                 → fotos otimizadas
-tests/               → testes
-package.json         → só "name", "private", "type" e o script "test"; sem dependências
+js/whatsapp.js             → funções puras: montar o link e formatar o preço
+js/app.js                  → busca o JSON, monta os cards, trata erros
+scripts/photo-lib.mjs      → funções puras do conversor de fotos
+scripts/prepare-photos.mjs → converte as fotos de fotos-originais/ para img/*.webp
+img/                       → fotos otimizadas
+tests/                     → testes
+package.json               → só "name", "private", "type" e o script "test"; sem dependências
 ```
 
 `js/whatsapp.js` é um módulo ES, carregado pelo navegador por `<script type="module">` e importado pelos testes no Node.
@@ -115,6 +117,11 @@ package.json         → só "name", "private", "type" e o script "test"; sem de
 - Prints de tela com barras pretas são recortados antes da conversão, para não sobrar faixa escura na foto.
 - As fotos podem chegar em lotes. Um bolo sem foto é um estado permitido, e o `npm test` lista quais ainda faltam.
 - A otimização é feita antes de entrar no repositório. Os prints enviados têm uns 5 MB cada, grandes demais para o site.
+- **Conversor:** `node scripts/prepare-photos.mjs` lê as fotos de `fotos-originais/`, nomeadas pelo `id` do bolo (`banana.jpg`; também `.jpeg`, `.png` e `.heic`) ou `hero` (`hero.jpg`), e grava `img/<id>.webp`. Os originais nunca são alterados.
+  - Recorta as tarjas pretas dos prints (só as de 8px ou mais, com 4px de folga), aplica a rotação gravada nos metadados das fotos de celular, só reduz (nunca amplia) e grava WebP com qualidade 80.
+  - Confere cada arquivo gravado: até 200 KB, container WebP íntegro e sem metadados EXIF nem XMP. A foto que falha não é gravada, e o `img/<id>.webp` anterior continua como estava.
+  - Nomes que não são um `id` (nem `hero`) são listados como ignorados. Dois arquivos para o mesmo `id` interrompem o comando antes de converter. `--dry-run` mostra o plano sem gravar nada, e `--out <pasta>` muda o destino.
+  - Exige macOS (`sips`) e o `cwebp` (`brew install webp`, num Terminal comum). Ele não julga sabor, rotação nem recorte: cada saída ainda precisa ser aberta e conferida antes do commit.
 - Se a foto de um bolo faltar, o card mostra um bloco marrom no lugar, sem imagem quebrada.
 - Cada imagem tem texto alternativo com o nome do bolo.
 
@@ -151,6 +158,8 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 - **`index.html`:** todos os links do WhatsApp são o link geral, e a quantidade deles é conferida contra uma constante nomeada (`EXPECTED_WHATSAPP_LINK_COUNT`). Os links que abrem em nova aba têm `rel="noopener noreferrer"`. O aviso de erro começa oculto e o `<noscript>` oferece o WhatsApp. O favicon (`favicon.svg`) referenciado no `<head>` tem de existir.
 - **`app.js`:** busca o `menu.json` revalidando o cache a cada visita, para que uma mudança de preço apareça logo após a publicação, e um teste confere isso.
 - **`photos.test.js`:** valida as fotos que existem em `img/`: cada arquivo tem de ser citado no `data/menu.json` (ou ser o `hero.webp`), ser WebP e ter até 200 KB. A falta de uma foto não reprova: o teste lista os bolos ainda sem foto (e se o `hero.webp` já existe) sem falhar.
+- **`photo-lib.test.js`:** as funções puras do conversor (`scripts/photo-lib.mjs`): quando reduzir (nunca ampliar; exatamente 800px não reduz), leitura de BMP de 24 e 32 bits (de baixo para cima e de cima para baixo, com a sobra de bytes no fim de cada linha), detecção das tarjas pretas (inclusive o caso real de 540x1158, com recorte de 4px), correspondência exata do nome do arquivo com o `id` (maiúsculas, acento decomposto, arquivo oculto) e a validação do WebP (container, tamanho, EXIF e XMP). Também confere que o limite de 200 KB é o mesmo do `photos.test.js`.
+- **`prepare-photos.test.js`:** de ponta a ponta. Gera PNGs sintéticos, roda o comando e confere as medidas e o conteúdo dos WebP gravados (tarjas recortadas no lugar certo, nada ampliado, rotação aplicada), os nomes ignorados, o erro de dois arquivos para o mesmo `id`, o `--dry-run` que não grava nada e as mensagens quando faltam `sips` ou `cwebp`. É pulado, com o motivo, onde essas ferramentas não existem; o `npm test` continua passando.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
 
 ## Como rodar localmente
