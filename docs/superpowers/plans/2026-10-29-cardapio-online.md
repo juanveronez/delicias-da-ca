@@ -789,6 +789,10 @@ test('app.js never injects HTML', () => {
 test('app.js opens WhatsApp links with a safe rel', () => {
   assert.match(code, /\.rel\s*=\s*'noopener noreferrer'/);
 });
+
+test('app.js revalidates the menu on every visit', () => {
+  assert.match(code, /fetch\(MENU_URL,\s*\{\s*cache:\s*'no-cache'\s*\}\)/);
+});
 ```
 
 - [ ] **Step 2: Rodar e ver falhar**
@@ -857,7 +861,9 @@ function createCard(cake) {
 
 async function init() {
   try {
-    const response = await fetch(MENU_URL);
+    // Revalidate on every visit so a price change shows up right after publishing
+    // (static hosts can otherwise serve a cached menu.json for several minutes).
+    const response = await fetch(MENU_URL, { cache: 'no-cache' });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }

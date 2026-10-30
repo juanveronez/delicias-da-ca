@@ -13,3 +13,7 @@ test('app.js never injects HTML', () => {
 test('app.js opens WhatsApp links with a safe rel', () => {
   assert.match(code, /\.rel\s*=\s*'noopener noreferrer'/);
 });
+
+test('app.js revalidates the menu on every visit', () => {
+  assert.match(code, /fetch\(MENU_URL,\s*\{\s*cache:\s*'no-cache'\s*\}\)/);
+});

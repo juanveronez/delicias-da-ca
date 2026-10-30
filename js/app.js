@@ -54,7 +54,9 @@ function createCard(cake) {
 
 async function init() {
   try {
-    const response = await fetch(MENU_URL);
+    // Revalidate on every visit so a price change shows up right after publishing
+    // (static hosts can otherwise serve a cached menu.json for several minutes).
+    const response = await fetch(MENU_URL, { cache: 'no-cache' });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
