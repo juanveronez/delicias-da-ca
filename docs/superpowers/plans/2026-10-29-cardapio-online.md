@@ -35,7 +35,7 @@
 | `tests/menu.test.js` | Valida `data/menu.json`. |
 | `tests/index.test.js` | Garante que os links e meta tags do `index.html` estão corretos. |
 | `tests/app.test.js` | Garante que `js/app.js` não injeta HTML e usa `rel` seguro. |
-| `tests/photos.test.js` | (Task 8) Garante que cada foto presente em `img/` é citada no `data/menu.json` (ou é `hero.webp`), é WebP e é leve. Lista os bolos ainda sem foto, sem falhar. |
+| `tests/photos.test.js` | (Task 8) Garante que cada foto presente em `img/` é citada no `data/menu.json` (ou é `hero.webp`) e passa no `checkWebp` de `scripts/photo-lib.mjs` (WebP íntegro, até 200 KB, sem EXIF nem XMP). Lista os bolos ainda sem foto, sem falhar. |
 | `scripts/photo-lib.mjs` | (Task 8) Funções puras do conversor de fotos: decidir se precisa reduzir (nunca amplia), ler BMP, achar tarjas pretas, casar o nome do arquivo com o `id` e validar o WebP. Sem efeitos colaterais. |
 | `scripts/prepare-photos.mjs` | (Task 8) O comando `node scripts/prepare-photos.mjs`: converte as fotos de `fotos-originais/` em `img/<id>.webp`. Usa `sips` (macOS) e `cwebp`. |
 | `tests/photo-lib.test.js` | (Task 8) Testa `scripts/photo-lib.mjs`. |
@@ -1026,14 +1026,16 @@ Primeiro lote (entregue em 30/10/2026): chegaram 10 das 18 fotos (`banana`, `cen
 
 - [ ] **Step 1: Escrever o teste**
 
-Criar `tests/photos.test.js`. Ele confere só os arquivos que existem em `img/`: cada um tem de ser citado no `data/menu.json` (ou ser o `hero.webp`), ser WebP e ter até 200 KB. A falta de uma foto não reprova nada: o teste só imprime a lista dos bolos que ainda não têm foto.
+Criar `tests/photos.test.js`. Ele confere só os arquivos que existem em `img/`: cada um tem de ser citado no `data/menu.json` (ou ser o `hero.webp`) e passar no `checkWebp` de `scripts/photo-lib.mjs`, a mesma checagem que o conversor faz ao gravar (container WebP íntegro, até `MAX_BYTES` = 200 KB e sem metadados EXIF nem XMP). A falta de uma foto não reprova nada: o teste só imprime a lista dos bolos que ainda não têm foto.
+
+Este teste importa `MAX_BYTES` e `checkWebp` de `scripts/photo-lib.mjs`, que já está no repositório. Para rodar o bloco abaixo fora do repositório (por exemplo, extraído para uma pasta temporária), leve o `scripts/photo-lib.mjs` e o `data/menu.json` junto, ou pule este teste.
 
 ```js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
+import { MAX_BYTES, checkWebp } from '../scripts/photo-lib.mjs';
 
-const MAX_BYTES = 200 * 1024;
 const HERO_FILE = 'hero.webp';
 
 const cakes = JSON.parse(
@@ -1047,9 +1049,8 @@ for (const file of present) {
   test(`img/${file} is a known, valid and light WebP`, async () => {
     assert.ok(known.has(file), `${file} is not referenced by data/menu.json and is not ${HERO_FILE}`);
     const bytes = await readFile(new URL(file, imgDir));
-    assert.equal(bytes.subarray(0, 4).toString('ascii'), 'RIFF', 'not a WebP file');
-    assert.equal(bytes.subarray(8, 12).toString('ascii'), 'WEBP', 'not a WebP file');
-    assert.ok(bytes.length <= MAX_BYTES, `${file} has ${bytes.length} bytes; the limit is ${MAX_BYTES}`);
+    const problems = checkWebp(bytes, { maxBytes: MAX_BYTES });
+    assert.deepEqual(problems, [], `${file} has problems: ${problems.join('; ')}`);
   });
 }
 
@@ -1086,11 +1087,11 @@ node scripts/prepare-photos.mjs
 ```
 
 Para cada foto, o comando:
-- recorta as tarjas pretas de prints de tela (só as de 8px ou mais, com 4px de folga), aplica a rotação gravada nos metadados e **só reduz** (nunca amplia) o lado maior até 800px, ou 1200px no `hero`;
+- recorta as tarjas pretas de prints de tela (só as de 4px ou mais, com 4px de folga), aplica a rotação gravada nos metadados e **só reduz** (nunca amplia) o lado maior até 800px, ou 1200px no `hero`;
 - grava `img/<id>.webp` com qualidade 80, sem metadados, e confere o resultado: até 200 KB, container WebP íntegro, sem EXIF nem XMP. A foto que falha aparece como `FAILED` na tabela e **não** é gravada; o `img/<id>.webp` anterior, se havia, fica como estava;
-- sobrescreve a saída que já existe (a tabela diz `replaced existing`) e nunca altera nem apaga os originais.
+- sobrescreve a saída que já existe (a tabela diz `replaced existing`) e nunca altera nem apaga os originais. A gravação é atômica: o arquivo vai primeiro para um temporário na pasta de destino e é renomeado sobre o destino, então nunca fica meia foto, não sobra temporário, e um link simbólico no destino é substituído em vez de seguido.
 
-O fim do comando é uma tabela com o `id`, a medida de origem, a medida final, os KB e as notas (`cropped bars`, `resized` ou `kept size`, `replaced existing`). O código de saída é 0 quando nenhuma foto falhou, 1 quando alguma falhou ou há `id` repetido, e 2 quando falta ferramenta ou o uso está errado. Opções: uma pasta de origem (padrão `fotos-originais`) e `--out <pasta>` (padrão `img`).
+O fim do comando é uma tabela com o `id`, a medida de origem, a medida final, os KB e as notas (`cropped bars` ou `crop skipped (--no-crop)`, `resized` ou `kept size`, `replaced existing`). O código de saída é 0 quando nenhuma foto falhou, 1 quando alguma falhou ou há `id` repetido, e 2 quando falta ferramenta ou o uso está errado. Opções: uma pasta de origem (padrão `fotos-originais`), `--out <pasta>` (padrão `img`) e `--no-crop`. O `--no-crop` desliga o recorte de todas as fotos da execução, e `--no-crop=<id>,<id>` só o dos `id` listados (um `id` que não está entre as fotos da execução é erro, com código 2 e nada convertido). Use-o quando o fundo for quase preto (um bolo sobre pano escuro, por exemplo): o detector não distingue esse fundo de uma tarja. `node scripts/prepare-photos.mjs --help` lista tudo.
 
 Expected: `Done: N converted, 0 failed, 0 skipped.` (nomes ignorados avisam, mas não reprovam) e um `img/<id>.webp` para cada foto da pasta.
 
@@ -1101,14 +1102,14 @@ No primeiro lote, `cenoura-brigadeiro` (720x688) e `laranja` ficaram no tamanho 
 O comando termina com o lembrete `Open each output and check flavor, rotation and crop before committing.` porque nada disso é verificável por código. Abra cada `img/<id>.webp` (por exemplo, `open img/banana.webp`) e confira:
 - o sabor é o do nome do arquivo (compare com o `name` do `data/menu.json`);
 - a foto está em pé, não de lado nem de cabeça para baixo;
-- não sobrou faixa preta nas bordas e o recorte não cortou o bolo. O comando só reconhece tarjas de 8px ou mais: uma faixa preta mais fina fica na foto, e a saída é recortar a origem e converter de novo.
+- não sobrou faixa preta nas bordas e o recorte não cortou o bolo. O comando só reconhece tarjas de 4px ou mais: uma faixa preta de 1 a 3px fica na foto, e a saída é recortar a origem e converter de novo. Se o recorte comeu um fundo escuro de propósito, converta de novo com `--no-crop=<id>`. (O `hero.png` de 1323x1189 que está em `fotos-originais/` tinha 13 linhas pretas em cima e 5 embaixo: o comando recorta as duas, e a foto sai com 1200x1055 e uns 142 KB.)
 
 O `img/hero.webp` só existe se havia um `hero.jpg` (ou `.jpeg`, `.png`, `.heic`) na pasta de origem. Sem ele, o topo da página fica sem foto.
 
 - [ ] **Step 6: Rodar e ver passar**
 
 Run: `npm test`
-Expected: `ℹ fail 0`. Cada foto presente em `img/` vira um teste (`img/<arquivo> is a known, valid and light WebP`). Com as 10 fotos do primeiro lote, o `tests/photos.test.js` roda 11 testes (1 que lista os bolos sem foto e 10 de foto), somados aos 21 anteriores e aos do conversor, e a linha de diagnóstico lista os 8 bolos que faltam e `hero.webp missing`. Se alguma foto passar de 200 KB, o comando a marca como `FAILED` e não a grava: reduza a origem (por exemplo, recortando o que não é o bolo) e converta de novo, ou diminua `WEBP_QUALITY` em `scripts/photo-lib.mjs` (o teste de constantes em `tests/photo-lib.test.js` acompanha o valor). Se o teste disser que um arquivo "is not referenced", o nome dele não bate com o campo `photo` do `data/menu.json` (ou sobrou em `img/` um arquivo que não é foto).
+Expected: `ℹ fail 0`. Cada foto presente em `img/` vira um teste (`img/<arquivo> is a known, valid and light WebP`). Com as 10 fotos do primeiro lote, o `tests/photos.test.js` roda 11 testes (1 que lista os bolos sem foto e 10 de foto), somados aos 21 anteriores e aos do conversor, e a linha de diagnóstico lista os 8 bolos que faltam e `hero.webp missing`. Se alguma foto passar de 200 KB, o comando a marca como `FAILED` e não a grava: reduza a origem (por exemplo, recortando o que não é o bolo) e converta de novo, ou diminua `WEBP_QUALITY` em `scripts/photo-lib.mjs` (e atualize também o valor esperado no teste de constantes de `tests/photo-lib.test.js`). Se o teste disser que um arquivo "is not referenced", o nome dele não bate com o campo `photo` do `data/menu.json` (ou sobrou em `img/` um arquivo que não é foto).
 
 - [ ] **Step 7: Conferir no navegador**
 
@@ -1191,7 +1192,7 @@ node scripts/prepare-photos.mjs --dry-run   # só mostra o que seria feito
 node scripts/prepare-photos.mjs             # converte para img/
 ```
 
-O comando recorta as tarjas pretas dos prints de tela, aplica a rotação das fotos de celular, só reduz (nunca amplia) e grava WebP com qualidade 80. Ele recusa a foto que passar de 200 KB ou que tiver metadados (EXIF ou XMP), avisa dos arquivos cujo nome não é um `id` e não altera os originais. No fim, abra cada foto de `img/` e confira sabor, rotação e recorte antes de fazer o commit.
+O comando recorta as tarjas pretas dos prints de tela, aplica a rotação das fotos de celular, só reduz (nunca amplia) e grava WebP com qualidade 80. Ele recusa a foto que passar de 200 KB ou que tiver metadados (EXIF ou XMP), avisa dos arquivos cujo nome não é um `id` e não altera os originais. Se o recorte comer um fundo escuro de propósito, rode com `--no-crop=<id>` (ou só `--no-crop`, para todas as fotos). No fim, abra cada foto de `img/` e confira sabor, rotação e recorte antes de fazer o commit.
 
 ## Testes
 
