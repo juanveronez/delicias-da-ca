@@ -23,7 +23,15 @@ import {
   parseBmp,
 } from './photo-lib.mjs';
 
-const USAGE = 'Usage: node scripts/prepare-photos.mjs [sourceDir] [--out <dir>] [--dry-run]';
+const USAGE = 'Usage: node scripts/prepare-photos.mjs [sourceDir] [--out <dir>] [--dry-run] [--no-crop[=<id>,<id>...]]';
+const OPTIONS = `Options:
+  sourceDir            folder with the original photos (default: fotos-originais)
+  --out <dir>          folder for the WebP files (default: img)
+  --dry-run            show what would be done and write nothing
+  --no-crop            do not remove black bars from any photo
+  --no-crop=<id>,...   do not remove black bars from these ids only (a near-black background
+                       looks like a bar to the detector)
+  --help               show this text`;
 const CWEBP_MISSING =
   "cwebp not found. Install it in a regular Terminal tab (Homebrew cannot run inside Claude Code's sandbox): brew install webp";
 const SIPS_MISSING = 'sips not found. This tool needs macOS: sips is the built-in image tool it relies on.';
@@ -32,7 +40,7 @@ const REMINDER = 'Open each output and check flavor, rotation and crop before co
 // --- command line and external tools -------------------------------------------------
 
 function parseArgs(args) {
-  const options = { sourceDir: 'fotos-originais', outDir: 'img', dryRun: false };
+  const options = { sourceDir: 'fotos-originais', outDir: 'img', dryRun: false, noCropAll: false, noCropIds: new Set() };
   let sawSourceDir = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -42,6 +50,12 @@ function parseArgs(args) {
       i += 1;
       if (i >= args.length || args[i].startsWith('--')) return { error: '--out needs a folder' };
       options.outDir = args[i];
+    } else if (arg === '--no-crop') {
+      options.noCropAll = true;
+    } else if (arg.startsWith('--no-crop=')) {
+      const ids = arg.slice('--no-crop='.length).split(',').map((id) => id.trim());
+      if (ids.some((id) => id === '')) return { error: '--no-crop= needs one or more ids, for example --no-crop=banana,hero' };
+      for (const id of ids) options.noCropIds.add(id);
     } else if (arg === '--help' || arg === '-h') {
       return { help: true };
     } else if (arg.startsWith('-')) {
@@ -139,22 +153,34 @@ function findDuplicates(matched) {
 // --- one photo -----------------------------------------------------------------------------
 
 const sizeText = ({ width, height }) => `${width}x${height}`;
+const cropSkippedNote = (plan) => (plan.skipCrop ? 'crop skipped (--no-crop)' : null);
 
 // Decodes the source once, as a BMP, and decides what to do with it. The BMP is what every
-// later step reads instead of the original file: sips applies the EXIF rotation of phone
-// photos when it writes a BMP (it drops it when it writes a PNG), so the pixels analysed
-// here are the pixels that get cropped, and the photo stays upright. A BMP keeps the pixel
-// values exactly (no color conversion), so the result is the same as reading the original.
+// later step reads instead of the original file, for two reasons that are both wanted here:
+// - sips applies the EXIF orientation of phone photos when it writes a BMP. A PNG written by
+//   sips keeps the orientation tag without applying it, and cwebp then drops the tag, so a
+//   portrait photo would come out on its side. Going through the BMP keeps the photo upright,
+//   and the pixels analysed for bars are the pixels that get cropped.
+// - sips decodes to an sRGB BMP, converting other profiles (such as the Display P3 of iPhone
+//   photos) to sRGB. cwebp drops ICC profiles and browsers read the WebP as sRGB, so this is
+//   the conversion the colors need anyway.
 // Nothing is written outside `workDir`.
-function planPhoto(photo, workDir) {
+function planPhoto(photo, workDir, options) {
   const base = path.join(workDir, 'decoded.bmp');
-  run('sips', ['-s', 'format', 'bmp', photo.file, '--out', base]);
+  // sips exits 0 without writing anything for an empty file, and fails for a corrupt one.
+  try {
+    run('sips', ['-s', 'format', 'bmp', photo.file, '--out', base]);
+  } catch {
+    // reported below, with a message that does not leak sips' temporary paths
+  }
+  if (!fs.existsSync(base)) throw new Error('sips could not decode the file (empty or corrupt?)');
   const parsed = parseBmp(fs.readFileSync(base));
 
-  const box = findContentBox(parsed);
+  const skipCrop = options.noCropAll || options.noCropIds.has(photo.id);
+  const box = skipCrop ? { top: 0, left: 0, width: parsed.width, height: parsed.height, cropped: false } : findContentBox(parsed);
   const maxSide = photo.id === HERO_ID ? MAX_SIDE.hero : MAX_SIDE.cake;
   const resize = needsResize(box.width, box.height, maxSide);
-  return { base, source: { width: parsed.width, height: parsed.height }, box, maxSide, resize };
+  return { base, source: { width: parsed.width, height: parsed.height }, box, skipCrop, maxSide, resize };
 }
 
 // Crops the black bars and shrinks the longest side when it is too large (never enlarging),
@@ -207,16 +233,30 @@ function encodePhoto(photo, rendered, workDir) {
   return { webp, bytes: bytes.length, final: readDimensions(webp) };
 }
 
+// Copies `source` next to `destination` and renames it over the destination. The rename is atomic
+// on the same filesystem, never leaves a half-written photo, and replaces a symlink at the
+// destination instead of writing through it. The temporary file never outlives the call.
+function writeAtomically(source, destination) {
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  const temporary = path.join(path.dirname(destination), `.${path.basename(destination)}.tmp-${process.pid}`);
+  try {
+    fs.copyFileSync(source, temporary);
+    fs.renameSync(temporary, destination);
+  } finally {
+    fs.rmSync(temporary, { force: true });
+  }
+}
+
 // Returns the table row of one photo; `failed` is true when the photo could not be converted.
 function processPhoto(photo, options, tempRoot) {
   const workDir = path.join(tempRoot, photo.id);
   fs.mkdirSync(workDir, { recursive: true });
   const destination = path.join(options.outDir, `${photo.id}.webp`);
-  const existed = fs.existsSync(destination);
+  const existed = fs.lstatSync(destination, { throwIfNoEntry: false }) !== undefined; // a link counts, even a dangling one
   let sourceText = '?';
 
   try {
-    const plan = planPhoto(photo, workDir);
+    const plan = planPhoto(photo, workDir, options);
     sourceText = sizeText(plan.source);
     const rendered = renderPhoto(plan, workDir);
 
@@ -224,16 +264,15 @@ function processPhoto(photo, options, tempRoot) {
       const cropText = plan.box.cropped
         ? `top ${plan.box.top}, left ${plan.box.left}, ${sizeText(plan.box)}`
         : 'none';
-      const steps = [plan.box.cropped ? 'crop' : null, plan.resize ? 'resize' : 'keep size', existed ? 'would replace existing' : null];
+      const steps = [plan.box.cropped ? 'crop' : cropSkippedNote(plan), plan.resize ? 'resize' : 'keep size', existed ? 'would replace existing' : null];
       return { failed: false, cells: [photo.id, sourceText, cropText, sizeText(rendered.size), steps.filter(Boolean).join(', ')] };
     }
 
     // The new file only reaches the output folder once it passed the checks, so a bad
     // conversion never destroys an output that was already good.
     const converted = encodePhoto(photo, rendered, workDir);
-    fs.mkdirSync(options.outDir, { recursive: true });
-    fs.copyFileSync(converted.webp, destination);
-    const notes = [plan.box.cropped ? 'cropped bars' : null, plan.resize ? 'resized' : 'kept size', existed ? 'replaced existing' : null];
+    writeAtomically(converted.webp, destination);
+    const notes = [plan.box.cropped ? 'cropped bars' : cropSkippedNote(plan), plan.resize ? 'resized' : 'kept size', existed ? 'replaced existing' : null];
     return {
       failed: false,
       cells: [photo.id, sourceText, sizeText(converted.final), (converted.bytes / 1024).toFixed(1), notes.filter(Boolean).join(', ')],
@@ -264,11 +303,11 @@ function printSkipped(skipped) {
 function main(args) {
   const parsedArgs = parseArgs(args);
   if (parsedArgs.help) {
-    console.log(USAGE);
+    console.log(`${USAGE}\n\n${OPTIONS}`);
     return 0;
   }
   if (parsedArgs.error) {
-    console.error(`${parsedArgs.error}\n${USAGE}`);
+    console.error(`${parsedArgs.error}\n${USAGE}\nRun with --help for the options.`);
     return 2;
   }
   const options = parsedArgs.options;
@@ -287,6 +326,14 @@ function main(args) {
     return 2;
   }
   const { matched, skipped } = listing;
+
+  const unknownIds = [...options.noCropIds].filter((id) => !matched.some((photo) => photo.id === id));
+  if (unknownIds.length > 0) {
+    console.error(
+      `--no-crop: ${unknownIds.map((id) => `"${id}"`).join(', ')} not among the photos of this run (${[...new Set(matched.map((photo) => photo.id))].join(', ') || 'none'}). Nothing was converted.`,
+    );
+    return 2;
+  }
 
   const duplicates = findDuplicates(matched);
   if (duplicates.length > 0) {

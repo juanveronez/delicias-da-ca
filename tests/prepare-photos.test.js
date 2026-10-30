@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomFillSync } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import { mkdtemp, mkdir, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -108,6 +108,13 @@ function withExifOrientation(jpeg, orientation) {
     position = end;
   }
   return Buffer.concat([...kept, exifSegment, jpeg.subarray(position)]);
+}
+
+// A cake on a near-black (5, 5, 5) backdrop: the rows above and below it look exactly like bars.
+function cakeOnDarkBackdrop(width, height) {
+  return makePng(width, height, (x, y) =>
+    x >= 100 && x < width - 100 && y >= 80 && y < height - 80 ? brightPhoto(x, y) : [5, 5, 5],
+  );
 }
 
 async function makeWorkspace(t) {
@@ -259,6 +266,118 @@ test('overwrites an existing output and says so', { skip: missingTool }, async (
   assert.deepEqual(checkWebp(await readFile(path.join(out, 'banana.webp'))), []);
 });
 
+test('replaces an existing output in one step and leaves no temporary file behind', { skip: missingTool }, async (t) => {
+  const { sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), flatPhoto(300, 200));
+  await writeFile(path.join(sources, 'limao.png'), flatPhoto(300, 200));
+  await mkdir(out);
+  await writeFile(path.join(out, 'banana.webp'), 'stale file');
+
+  for (let run = 1; run <= 2; run += 1) {
+    const { status, stdout, stderr } = runCli([sources, '--out', out]);
+    assert.equal(status, 0, `run ${run}: ${stdout}\n${stderr}`);
+    assert.deepEqual(await listDir(out), ['banana.webp', 'limao.webp'], `run ${run}: only the photos, no .tmp files`);
+    assert.deepEqual(checkWebp(await readFile(path.join(out, 'banana.webp'))), []);
+  }
+});
+
+test('replaces a symlink in the output folder instead of writing through it', { skip: missingTool }, async (t) => {
+  const { root, sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), flatPhoto(300, 200));
+  const elsewhere = path.join(root, 'elsewhere.webp');
+  await writeFile(elsewhere, 'precious: must stay untouched');
+  await mkdir(out);
+  await symlink(elsewhere, path.join(out, 'banana.webp'));
+
+  const { status, stdout, stderr } = runCli([sources, '--out', out]);
+  assert.equal(status, 0, `${stdout}\n${stderr}`);
+  assert.match(stdout, /^banana\s.*replaced existing$/m);
+  assert.equal(lstatSync(path.join(out, 'banana.webp')).isSymbolicLink(), false, 'the link was replaced by a regular file');
+  assert.deepEqual(checkWebp(await readFile(path.join(out, 'banana.webp'))), []);
+  assert.equal(await readFile(elsewhere, 'utf8'), 'precious: must stay untouched', 'the link target was not written');
+  assert.deepEqual(await listDir(out), ['banana.webp']);
+});
+
+test('cleans up its temporary file when the output cannot be replaced', { skip: missingTool }, async (t) => {
+  const { sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), flatPhoto(300, 200));
+  await writeFile(path.join(sources, 'limao.png'), flatPhoto(300, 200));
+  await mkdir(path.join(out, 'banana.webp'), { recursive: true }); // a folder cannot be replaced by a file
+
+  const { status, stdout } = runCli([sources, '--out', out]);
+  assert.equal(status, 1);
+  assert.match(stdout, /^banana\s.*FAILED/m);
+  assert.match(stdout, /^limao\s.*kept size$/m);
+  assert.deepEqual(await listDir(out), ['banana.webp', 'limao.webp'], 'no .tmp file is left next to the photos');
+});
+
+test('--no-crop keeps the full size of every photo', { skip: missingTool }, async (t) => {
+  const { root, sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), photoWithBars(400, 300, { top: 60, bottom: 60 }));
+  await writeFile(path.join(sources, 'cenoura.png'), photoWithBars(400, 300, { top: 60, bottom: 60 }));
+
+  const { status, stdout, stderr } = runCli([sources, '--out', out, '--no-crop']);
+  assert.equal(status, 0, `${stdout}\n${stderr}`);
+  assert.equal(dimensionsOf(path.join(out, 'banana.webp')), '400x300');
+  assert.equal(dimensionsOf(path.join(out, 'cenoura.webp')), '400x300');
+  assert.match(stdout, /^banana\s+400x300\s+400x300\s+\S+\s+crop skipped \(--no-crop\), kept size$/m);
+  assert.match(stdout, /^cenoura\s+400x300\s+400x300\s+\S+\s+crop skipped \(--no-crop\), kept size$/m);
+  assert.doesNotMatch(stdout, /cropped bars/);
+  assert.ok(pixelStats(path.join(out, 'banana.webp'), root).rowMeans[0] < 30, 'the black bar is still there');
+});
+
+test('--no-crop=<id> skips the crop only for the listed ids', { skip: missingTool }, async (t) => {
+  const { sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), photoWithBars(400, 300, { top: 60, bottom: 60 }));
+  await writeFile(path.join(sources, 'cenoura.png'), photoWithBars(400, 300, { top: 60, bottom: 60 }));
+  await writeFile(path.join(sources, 'limao.png'), photoWithBars(400, 300, { top: 60, bottom: 60 }));
+
+  const { status, stdout, stderr } = runCli([sources, '--out', out, '--no-crop=banana,limao']);
+  assert.equal(status, 0, `${stdout}\n${stderr}`);
+  assert.equal(dimensionsOf(path.join(out, 'banana.webp')), '400x300');
+  assert.equal(dimensionsOf(path.join(out, 'limao.webp')), '400x300');
+  // bars of 60 rows: the box starts at 60 + 4 and ends before 240 - 4, so 172 rows are left
+  assert.equal(dimensionsOf(path.join(out, 'cenoura.webp')), '400x172');
+  assert.match(stdout, /^banana\s.*crop skipped \(--no-crop\)/m);
+  assert.match(stdout, /^limao\s.*crop skipped \(--no-crop\)/m);
+  assert.match(stdout, /^cenoura\s.*cropped bars/m);
+});
+
+test('--no-crop rejects ids that are not among the sources of this run and writes nothing', { skip: missingTool }, async (t) => {
+  const { sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), flatPhoto(200, 100));
+
+  for (const option of ['--no-crop=nope', '--no-crop=banana,nope', '--no-crop=limao']) {
+    const { status, stderr } = runCli([sources, '--out', out, option]);
+    assert.equal(status, 2, option);
+    assert.match(stderr, /--no-crop: .* not among the photos of this run/, option);
+    assert.match(stderr, new RegExp(option.split(',').at(-1).replace('--no-crop=', '')), option);
+    assert.equal(existsSync(out), false, `${option}: nothing may be written`);
+  }
+  for (const option of ['--no-crop=', '--no-crop=banana,']) {
+    const { status, stderr } = runCli([sources, '--out', out, option]);
+    assert.equal(status, 2, option);
+    assert.match(stderr, /needs one or more ids/, option);
+  }
+});
+
+test('a cake on a near-black backdrop is cropped by default and kept whole with --no-crop', { skip: missingTool }, async (t) => {
+  // The backdrop rows are indistinguishable from bars, which is what --no-crop is for.
+  const { sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), cakeOnDarkBackdrop(400, 300));
+
+  let result = runCli([sources, '--out', out]);
+  assert.equal(result.status, 0, result.stdout);
+  // Backdrop of 80 rows above and below and 100 columns on each side: the box is the cake plus 4px
+  // inside it, 192x132, and the backdrop is gone.
+  assert.equal(dimensionsOf(path.join(out, 'banana.webp')), '192x132');
+  assert.match(result.stdout, /cropped bars/);
+
+  result = runCli([sources, '--out', out, '--no-crop=banana']);
+  assert.equal(result.status, 0, result.stdout);
+  assert.equal(dimensionsOf(path.join(out, 'banana.webp')), '400x300');
+});
+
 test('recognizes source names regardless of case and extension', { skip: missingTool }, async (t) => {
   const { sources, out } = await makeWorkspace(t);
   await writeFile(path.join(sources, 'Banana.PNG'), flatPhoto(200, 100));
@@ -315,6 +434,18 @@ test('--dry-run reports the plan and writes nothing', { skip: missingTool }, asy
   assert.deepEqual(await listDir(sources), ['IMG_1.png', 'banana.png', 'cenoura.png']);
 });
 
+test('--dry-run honours --no-crop', { skip: missingTool }, async (t) => {
+  const { sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.png'), photoWithBars(600, 1000, { top: 250, bottom: 250 }));
+  await writeFile(path.join(sources, 'cenoura.png'), photoWithBars(600, 1000, { top: 250, bottom: 250 }));
+
+  const { status, stdout } = runCli([sources, '--out', out, '--dry-run', '--no-crop=banana']);
+  assert.equal(status, 0, stdout);
+  assert.match(stdout, /^banana\s+600x1000\s+none\s+480x800\s+crop skipped \(--no-crop\), resize$/m);
+  assert.match(stdout, /^cenoura\s+600x1000\s+top 254, left 0, 600x492\s+600x492\s+crop, keep size$/m);
+  assert.equal(existsSync(out), false);
+});
+
 test('marks an unreadable photo as failed, keeps going and exits 1', { skip: missingTool }, async (t) => {
   const { sources, out } = await makeWorkspace(t);
   await writeFile(path.join(sources, 'banana.png'), 'this is not an image');
@@ -323,6 +454,20 @@ test('marks an unreadable photo as failed, keeps going and exits 1', { skip: mis
   const { status, stdout } = runCli([sources, '--out', out]);
   assert.equal(status, 1);
   assert.match(stdout, /^banana\s.*FAILED/m);
+  assert.match(stdout, /^limao\s.*kept size$/m);
+  assert.deepEqual(await listDir(out), ['limao.webp']);
+});
+
+test('explains an empty source file without exposing temporary paths, and converts the others', { skip: missingTool }, async (t) => {
+  const { sources, out } = await makeWorkspace(t);
+  await writeFile(path.join(sources, 'banana.jpg'), '');
+  await writeFile(path.join(sources, 'limao.png'), flatPhoto(200, 100));
+
+  const { status, stdout, stderr } = runCli([sources, '--out', out]);
+  assert.equal(status, 1);
+  assert.match(stdout, /^banana\s.*FAILED: sips could not decode the file \(empty or corrupt\?\)$/m);
+  const bananaRow = stdout.split('\n').find((line) => line.startsWith('banana'));
+  assert.doesNotMatch(`${bananaRow}\n${stderr}`, /ENOENT|\.bmp|\/(var|tmp|private)\//i, 'no temporary path in the message');
   assert.match(stdout, /^limao\s.*kept size$/m);
   assert.deepEqual(await listDir(out), ['limao.webp']);
 });
@@ -364,11 +509,17 @@ test('exits 2 when the source folder does not exist', { skip: missingTool }, asy
 
 test('exits 2 with a usage message for unknown options and missing values', async (t) => {
   const { sources } = await makeWorkspace(t);
-  for (const args of [[sources, '--bogus'], [sources, '--out'], [sources, 'second-folder']]) {
+  for (const args of [[sources, '--bogus'], [sources, '--out'], [sources, 'second-folder'], [sources, '--no-crop=']]) {
     const { status, stderr } = runCli(args);
     assert.equal(status, 2, args.join(' '));
     assert.match(stderr, /Usage: node scripts\/prepare-photos\.mjs/, args.join(' '));
   }
+});
+
+test('--help describes every option and exits 0', () => {
+  const { status, stdout } = runCli(['--help']);
+  assert.equal(status, 0);
+  for (const option of ['--out', '--dry-run', '--no-crop']) assert.ok(stdout.includes(option), `--help should mention ${option}`);
 });
 
 test('exits 2 and says the tool needs macOS when sips is missing', async (t) => {

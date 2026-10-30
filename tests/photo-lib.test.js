@@ -1,6 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import {
   MAX_BYTES,
   MAX_SIDE,
@@ -129,46 +128,25 @@ test('constants hold the agreed limits', () => {
   assert.equal(HERO_ID, 'hero');
 });
 
-test('MAX_BYTES stays in sync with tests/photos.test.js', async () => {
-  const source = await readFile(new URL('./photos.test.js', import.meta.url), 'utf8');
-  const match = source.match(/const MAX_BYTES = ([\d\s*]+);/);
-  assert.ok(match, 'tests/photos.test.js no longer declares MAX_BYTES as a product of numbers');
-  const product = match[1].split('*').reduce((total, factor) => total * Number(factor), 1);
-  assert.equal(MAX_BYTES, product);
-});
-
 // ---------------------------------------------------------------------------
 // needsResize
 // ---------------------------------------------------------------------------
 
-test('needsResize shrinks a photo whose longest side is above the limit', () => {
-  assert.equal(needsResize(1125, 1077, 800), true);
-});
-
-test('needsResize keeps a photo that is already smaller than the limit', () => {
-  assert.equal(needsResize(720, 688, 800), false);
-  assert.equal(needsResize(540, 502, 800), false);
-});
-
-test('needsResize does not resize a longest side of exactly the limit', () => {
+test('needsResize never resizes a longest side of exactly the limit, or a smaller photo', () => {
   assert.equal(needsResize(800, 600, 800), false);
   assert.equal(needsResize(600, 800, 800), false);
-  assert.equal(needsResize(800, 800, 800), false);
+  assert.equal(needsResize(720, 688, 800), false);
 });
 
 test('needsResize resizes from one pixel above the limit', () => {
   assert.equal(needsResize(801, 600, 800), true);
-  assert.equal(needsResize(600, 801, 800), true);
+  assert.equal(needsResize(1125, 1077, 800), true);
 });
 
 test('needsResize treats portrait and landscape the same way', () => {
-  assert.equal(needsResize(1000, 600, 800), needsResize(600, 1000, 800));
-  assert.equal(needsResize(500, 700, 800), needsResize(700, 500, 800));
-});
-
-test('needsResize uses the limit it is given', () => {
-  assert.equal(needsResize(1100, 900, 1200), false);
-  assert.equal(needsResize(1201, 900, MAX_SIDE.hero), true);
+  assert.equal(needsResize(600, 1000, 800), needsResize(1000, 600, 800));
+  assert.equal(needsResize(601, 801, MAX_SIDE.cake), true);
+  assert.equal(needsResize(1100, 900, MAX_SIDE.hero), false);
 });
 
 // ---------------------------------------------------------------------------
@@ -331,32 +309,33 @@ test('findContentBox crops the same reference case read from a real BMP', () => 
   assert.deepEqual(findContentBox(parsed), { top: 327, left: 0, width: 540, height: 504, cropped: true });
 });
 
-test('findContentBox keeps the 4px margin inside the bright photo rows (324-833)', () => {
-  const box = findContentBox(
-    statsFor({
-      width: 540,
-      height: 1158,
-      rowSpans: [
-        [0, 322, DARK],
-        [323, 323, { mean: 87, max: 255 }],
-        [834, 834, { mean: 61, max: 200 }],
-        [835, 1157, DARK],
-      ],
-    }),
-  );
-  assert.ok(box.top >= 324, 'the box starts on a fully bright row');
-  assert.ok(box.top + box.height - 1 <= 833, 'the box ends on a fully bright row');
-});
-
 test('findContentBox leaves an image without bars untouched', () => {
   assert.deepEqual(findContentBox(statsFor({ width: 720, height: 688 })), FULL(720, 688));
 });
 
-test('findContentBox ignores a bar shorter than minBar and accepts one of exactly minBar', () => {
-  const shortBar = statsFor({ width: 100, height: 100, rowSpans: [[0, 6, DARK]] });
+test('findContentBox ignores a bar shorter than minBar (4) and accepts one of exactly minBar', () => {
+  const shortBar = statsFor({ width: 100, height: 100, rowSpans: [[0, 2, DARK]] });
   assert.deepEqual(findContentBox(shortBar), FULL(100, 100));
-  const exactBar = statsFor({ width: 100, height: 100, rowSpans: [[0, 7, DARK]] });
-  assert.deepEqual(findContentBox(exactBar), { top: 12, left: 0, width: 100, height: 88, cropped: true });
+  const exactBar = statsFor({ width: 100, height: 100, rowSpans: [[0, 3, DARK]] });
+  assert.deepEqual(findContentBox(exactBar), { top: 8, left: 0, width: 100, height: 92, cropped: true });
+});
+
+test('findContentBox crops the thin black strips of the real hero photo (13 rows on top, 5 at the bottom)', () => {
+  // Measured on the 1323x1189 hero screenshot: row 12 is almost black, row 13 is the first photo
+  // row, row 1183 is a transition row and rows 1184-1188 are black. The 5-row strip is what
+  // minBar 8 used to leave behind.
+  const parsed = statsFor({
+    width: 1323,
+    height: 1189,
+    rowSpans: [
+      [0, 11, { mean: 1, max: 5 }],
+      [12, 12, { mean: 17, max: 31 }],
+      [1183, 1183, { mean: 55, max: 105 }],
+      [1184, 1188, { mean: 1.5, max: 10 }],
+    ],
+  });
+  // First non-dark row 13 -> top 17; last non-dark row 1183 -> the box ends before 1184 - 4 = 1180.
+  assert.deepEqual(findContentBox(parsed), { top: 17, left: 0, width: 1323, height: 1163, cropped: true });
 });
 
 test('findContentBox does not treat a dark photo with bright pixels as a bar', () => {

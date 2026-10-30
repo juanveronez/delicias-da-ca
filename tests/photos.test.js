@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
+import { MAX_BYTES, checkWebp } from '../scripts/photo-lib.mjs';
 
-const MAX_BYTES = 200 * 1024;
 const HERO_FILE = 'hero.webp';
 
 const cakes = JSON.parse(
@@ -16,9 +16,8 @@ for (const file of present) {
   test(`img/${file} is a known, valid and light WebP`, async () => {
     assert.ok(known.has(file), `${file} is not referenced by data/menu.json and is not ${HERO_FILE}`);
     const bytes = await readFile(new URL(file, imgDir));
-    assert.equal(bytes.subarray(0, 4).toString('ascii'), 'RIFF', 'not a WebP file');
-    assert.equal(bytes.subarray(8, 12).toString('ascii'), 'WEBP', 'not a WebP file');
-    assert.ok(bytes.length <= MAX_BYTES, `${file} has ${bytes.length} bytes; the limit is ${MAX_BYTES}`);
+    const problems = checkWebp(bytes, { maxBytes: MAX_BYTES });
+    assert.deepEqual(problems, [], `${file} has problems: ${problems.join('; ')}`);
   });
 }
 

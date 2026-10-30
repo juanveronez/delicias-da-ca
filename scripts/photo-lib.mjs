@@ -1,8 +1,8 @@
 // Pure helpers for the photo converter (scripts/prepare-photos.mjs).
 // Nothing here touches the disk or spawns processes, so it can be unit tested.
 
-// Largest accepted WebP file, in bytes. Keep in sync with MAX_BYTES in tests/photos.test.js
-// (tests/photo-lib.test.js fails when the two drift apart).
+// Largest accepted WebP file, in bytes. tests/photos.test.js imports it (and checkWebp), so the
+// limit enforced when photos are converted and the one enforced by `npm test` are the same.
 export const MAX_BYTES = 200 * 1024;
 
 // Longest side, in pixels, of the converted photos. Photos are only ever shrunk to it.
@@ -123,7 +123,7 @@ export function parseBmp(buffer) {
 const DEFAULT_BOX_OPTIONS = {
   darkMean: 30, // a line is dark when its mean luminance is below this...
   darkMax: 70, // ...and its brightest pixel is below this (a dark photo has bright pixels)
-  minBar: 8, // a run of dark lines shorter than this is not a bar
+  minBar: 4, // a run of dark lines shorter than this is not a bar (the real hero has a 5-row strip)
   margin: 4, // pixels trimmed inside the bright content next to each bar
   minContentRatio: 0.25, // give up when less than this share of a dimension would be left
 };
