@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keeps the versions of the actions used in .github/workflows up to date.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  # Keeps the exact-pinned Biome fresh. A new Biome release may need `npx biome migrate`
+  # for biome.json; the CI run of the pull request shows it.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

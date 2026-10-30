@@ -18,7 +18,7 @@ const toml = await read('netlify.toml').catch(() => '');
 const html = await read('index.html');
 const appSource = await read('js/app.js');
 
-// No TOML library (the project has no dependencies): netlify.toml only needs
+// No TOML library (the tests need no installed package): netlify.toml only needs
 // two string keys, so small regexes read them.
 const command = /^\s*command\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];
 const publish = /^\s*publish\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];

@@ -1,0 +1,40 @@
+# Checks every change: formatting and lint (Biome), then the tests.
+# It does not deploy: Netlify publishes the site by itself when `main` changes.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the same branch or pull request cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node (version from .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install the dev tools
+        run: npm ci
+
+      - name: Lint and check the formatting
+        run: npm run lint
+
+      # The photo converter tests need macOS (sips) and cwebp, so this runner skips them.
+      - name: Test
+        run: npm test
