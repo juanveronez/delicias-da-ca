@@ -156,7 +156,7 @@ test('needsResize treats portrait and landscape the same way', () => {
 test('parseBmp reads a bottom-up 24-bit BMP and reports rows from the top', () => {
   // 2x3 image. Top row white, middle row mid gray, bottom row black.
   const rows = [gray(255), gray(100), gray(0)];
-  const bmp = buildBmp({ width: 2, height: 3, pixel: (x, y) => rows[y] });
+  const bmp = buildBmp({ width: 2, height: 3, pixel: (_x, y) => rows[y] });
   const parsed = parseBmp(bmp);
   assert.equal(parsed.width, 2);
   assert.equal(parsed.height, 3);
@@ -168,7 +168,7 @@ test('parseBmp reads a bottom-up 24-bit BMP and reports rows from the top', () =
 
 test('parseBmp reads a top-down 24-bit BMP (negative height) with the same result', () => {
   const rows = [gray(255), gray(100), gray(0)];
-  const pixel = (x, y) => rows[y];
+  const pixel = (_x, y) => rows[y];
   const bottomUp = parseBmp(buildBmp({ width: 2, height: 3, pixel }));
   const topDown = parseBmp(buildBmp({ width: 2, height: 3, topDown: true, pixel }));
   assert.equal(topDown.height, 3);
@@ -176,7 +176,7 @@ test('parseBmp reads a top-down 24-bit BMP (negative height) with the same resul
 });
 
 test('parseBmp reads a 32-bit BMP and ignores the alpha channel', () => {
-  const bmp = buildBmp({ width: 3, height: 2, bitsPerPixel: 32, pixel: (x, y) => gray(y === 0 ? 200 : 40) });
+  const bmp = buildBmp({ width: 3, height: 2, bitsPerPixel: 32, pixel: (_x, y) => gray(y === 0 ? 200 : 40) });
   const parsed = parseBmp(bmp);
   assert.equal(parsed.width, 3);
   assert.equal(parsed.height, 2);
@@ -195,7 +195,7 @@ test('parseBmp weights the channels as 0.299 R + 0.587 G + 0.114 B', () => {
 
 test('parseBmp skips the row padding when the width is not a multiple of 4', () => {
   // 5 pixels of 24 bits = 15 bytes per row, padded to 16 with 0xFF bytes.
-  const bmp = buildBmp({ width: 5, height: 2, pixel: (x, y) => gray(y === 0 ? 10 : 20) });
+  const bmp = buildBmp({ width: 5, height: 2, pixel: (_x, y) => gray(y === 0 ? 10 : 20) });
   const parsed = parseBmp(bmp);
   assert.equal(parsed.width, 5);
   assertClose(parsed.rowMeans[0], 10, 'top row mean');
@@ -236,7 +236,7 @@ test('parseBmp reads the 32-bit BI_BITFIELDS BMP with a V5 header that sips writ
     bitsPerPixel: 32,
     bitfields: true,
     topDown: true,
-    pixel: (x, y) => gray(y === 0 ? 200 : 40),
+    pixel: (_x, y) => gray(y === 0 ? 200 : 40),
   });
   const parsed = parseBmp(bmp);
   assert.equal(parsed.width, 3);
