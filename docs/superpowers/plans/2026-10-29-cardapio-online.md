@@ -4,9 +4,9 @@
 
 **Goal:** Publicar um site estático de cardápio de bolos caseiros em que cada bolo tem um botão que abre o WhatsApp da Delicias da Cá com a mensagem do pedido já escrita.
 
-**Architecture:** Página única (`index.html`) em HTML, CSS e JavaScript puros, sem build. Os bolos vêm de `data/menu.json`; `js/app.js` busca o JSON e monta os cards com `textContent`. A lógica que não pode quebrar (link do WhatsApp e formatação de preço) fica em `js/whatsapp.js`, um módulo ES de funções puras, testado com o executor nativo do Node (`node --test`). Na publicação, o Netlify roda o comando do `netlify.toml`, que copia só os arquivos do site para `dist/` e publica essa pasta: o resto do repositório (`docs/`, `tests/`, `scripts/` etc.) não vai ao ar.
+**Architecture:** Página única (`index.html`) em HTML, CSS e JavaScript puros, sem build. Os bolos vêm de `data/menu.json`; `js/app.js` busca o JSON e monta os cards com `textContent`. A lógica que não pode quebrar (link do WhatsApp e formatação de preço) fica em `js/whatsapp.js`, um módulo ES de funções puras, testado com o executor nativo do Node (`node --test`). Na publicação, o Netlify roda o comando do `netlify.toml`, que copia só os arquivos do site para `dist/` e publica essa pasta: o resto do repositório (`docs/`, `tests/`, `scripts/` etc.) não vai ao ar. A qualidade do código é conferida pelo Biome (lint, formatação e ordem dos imports) e, a cada push na `main` e a cada pull request, pelo GitHub Actions, que roda `npm run lint` e `npm test`; o deploy continua sendo só do Netlify (Task 10).
 
-**Tech Stack:** HTML5, CSS3, JavaScript (módulos ES), Node 22 (`node:test`, sem dependências), `python3 -m http.server` para ver o site localmente, `sips` (macOS) e `cwebp` (Homebrew `webp`), usados pelo `scripts/prepare-photos.mjs` para converter fotos, e Netlify (plano gratuito) para publicar, com um `netlify.toml` que copia só os arquivos do site para `dist/`.
+**Tech Stack:** HTML5, CSS3, JavaScript (módulos ES), Node 22 (`node:test`; o `npm test` não precisa instalar nada), `python3 -m http.server` para ver o site localmente, `sips` (macOS) e `cwebp` (Homebrew `webp`), usados pelo `scripts/prepare-photos.mjs` para converter fotos, e Netlify (plano gratuito) para publicar, com um `netlify.toml` que copia só os arquivos do site para `dist/` e que usa `NPM_FLAGS = "--omit=dev"` para o Netlify não instalar o Biome. Na Task 10 entram o Biome 2.6.4 (o único `devDependency`, em versão exata), o GitHub Actions (CI) e o Dependabot.
 
 **Spec:** `docs/superpowers/specs/2026-10-29-cardapio-online-design.md`
 
@@ -23,7 +23,13 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `package.json` | Só `name`, `private`, `type` e o script `test`. Sem dependências. |
+| `package.json` | `name`, `private`, `type` e o script `test`; a Task 10 acrescenta os scripts `lint` e `lint:fix` e o Biome como único `devDependency` (versão exata). Sem dependências de execução. |
+| `package-lock.json` | (Task 10) Gerado pelo `npm` e versionado: o CI instala com `npm ci`, que instala exatamente o que o arquivo lista (inclusive os binários do Biome para Linux). |
+| `.nvmrc` | (Task 10) `22`: a versão do Node, lida pelo `nvm use` e pelo CI. |
+| `biome.json` | (Task 10) Configuração do Biome: aspas simples, ponto e vírgula, 2 espaços, vírgula final, 120 colunas, regras `recommended`, escopo (`js`, `scripts`, `tests`, `css`, `data`, `package.json`, `biome.json`) e o formatador desligado só para `data/menu.json` (um bolo por linha). |
+| `.github/workflows/ci.yml` | (Task 10) O CI: em todo push na `main` e em todo pull request, `npm ci`, `npm run lint` e `npm test`, com o Node de `.nvmrc`. Permissão só de leitura, sem segredos, sem deploy. |
+| `.github/dependabot.yml` | (Task 10) PRs semanais para as versões das actions e do Biome. |
+| `tests/tooling.test.js` | (Task 10) Guarda o contrato entre `.nvmrc`, `package.json`, `ci.yml`, `biome.json` e `netlify.toml`. |
 | `.gitignore` | Ignora `.superpowers/`, os prints de referência, `.DS_Store`, `node_modules/`, `fotos-originais/` (as fotos enviadas, antes da otimização) e `dist/` (a pasta que o build do Netlify gera). |
 | `js/whatsapp.js` | Funções puras: formatar preço, montar mensagem e link do WhatsApp. Sem DOM. |
 | `data/menu.json` | Os 18 bolos, na ordem de exibição. Só dados. |
@@ -43,13 +49,13 @@
 | `img/` | Fotos otimizadas (Task 8), que podem chegar em lotes. |
 | `README.md` | Página do projeto no GitHub, em inglês: o que é, como rodar, editar o cardápio, converter fotos, testar e publicar no Netlify. |
 | `og-image.jpg` | (Task 9) Imagem da prévia do link no WhatsApp e no Instagram: JPEG de 1200x630, menos de 300 KB, recortada de `img/hero.webp`. Binário: o plano descreve como gerar. |
-| `netlify.toml` | (Task 9) Diz ao Netlify o que publicar: o comando de build copia só os arquivos do site (`index.html`, `favicon.svg`, `og-image.jpg`, `css`, `js`, `data` e `img`) para `dist/`, e `dist` é a pasta publicada. |
+| `netlify.toml` | (Task 9) Diz ao Netlify o que publicar: o comando de build copia só os arquivos do site (`index.html`, `favicon.svg`, `og-image.jpg`, `css`, `js`, `data` e `img`) para `dist/`, e `dist` é a pasta publicada. A Task 10 acrescenta `NPM_FLAGS = "--omit=dev"`, para o Netlify não instalar o Biome. |
 | `tests/netlify.test.js` | (Task 9) Confere o `netlify.toml`: o `publish` e o destino do `cp -R` são o mesmo, os caminhos existem, tudo o que a página usa está na lista, nenhuma pasta interna (`docs`, `tests`, `scripts`...) entra, e o comando de build, rodado numa cópia temporária, gera o `dist/` esperado. |
 
 ## Regras gerais deste plano
 
 - Rodar os testes: `npm test` (equivale a `node --test tests/*.test.js`).
-- Nenhuma dependência npm. Não rodar `npm install`.
+- A página não tem dependência de execução, e o `npm test` não precisa de instalação. Até a Task 9 não há nada para instalar (não rodar `npm install`); a Task 10 acrescenta o Biome como único `devDependency`, e daí em diante o `npm ci` só é necessário para o lint e a formatação.
 - Se o sandbox do Apple Claude Code bloquear a abertura de porta (`EPERM on listen`) na Task 7, **não** altere allowlists nem o sandbox. Peça ao usuário para rodar `python3 -m http.server 8000` num terminal dele.
 - Os dois prints na raiz (`Screenshot ...png`) são do usuário. Não apague nem mova sem pedir.
 
@@ -118,16 +124,16 @@ git commit -m "chore: estrutura inicial, spec e plano do cardápio online"
 Criar `tests/whatsapp.test.js`:
 
 ```js
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import {
-  WHATSAPP_NUMBER,
-  GENERAL_MESSAGE,
-  GENERAL_LINK,
-  formatPrice,
-  cakeMessage,
-  whatsappLink,
   cakeLink,
+  cakeMessage,
+  formatPrice,
+  GENERAL_LINK,
+  GENERAL_MESSAGE,
+  WHATSAPP_NUMBER,
+  whatsappLink,
 } from '../js/whatsapp.js';
 
 test('formatPrice shows reais with a comma and two decimals', () => {
@@ -142,10 +148,7 @@ test('formatPrice has no whitespace other than a plain space', () => {
 
 test('cakeMessage mentions the cake name and price', () => {
   const message = cakeMessage({ name: 'Cenoura vulcão', price: 50 });
-  assert.equal(
-    message,
-    'Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de Cenoura vulcão (R$ 50,00).',
-  );
+  assert.equal(message, 'Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de Cenoura vulcão (R$ 50,00).');
 });
 
 test('whatsappLink points to the number with country code and area code', () => {
@@ -170,10 +173,7 @@ test('cakeLink opens WhatsApp with the message for that cake', () => {
 });
 
 test('GENERAL_LINK uses the general message, without a cake name', () => {
-  assert.equal(
-    GENERAL_MESSAGE,
-    'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.',
-  );
+  assert.equal(GENERAL_MESSAGE, 'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.');
   assert.equal(new URL(GENERAL_LINK).searchParams.get('text'), GENERAL_MESSAGE);
 });
 ```
@@ -190,8 +190,7 @@ Criar `js/whatsapp.js`:
 ```js
 export const WHATSAPP_NUMBER = '5519996851415';
 
-export const GENERAL_MESSAGE =
-  'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.';
+export const GENERAL_MESSAGE = 'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.';
 
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -245,9 +244,9 @@ git commit -m "feat: link do WhatsApp e formatação de preço"
 Criar `tests/menu.test.js`:
 
 ```js
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { test } from 'node:test';
 
 async function load() {
   const text = await readFile(new URL('../data/menu.json', import.meta.url), 'utf8');
@@ -353,9 +352,9 @@ git commit -m "feat: dados dos 18 bolos do cardápio"
 Criar `tests/index.test.js`:
 
 ```js
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
+import { test } from 'node:test';
 import { GENERAL_LINK } from '../js/whatsapp.js';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
@@ -910,9 +909,9 @@ git commit -m "feat: estilo rústico artesanal, mobile first"
 Criar `tests/app.test.js`:
 
 ```js
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { test } from 'node:test';
 
 const code = await readFile(new URL('../js/app.js', import.meta.url), 'utf8');
 
@@ -946,7 +945,7 @@ Expected: `tests/app.test.js` falha com `ENOENT` para `js/app.js`.
 Criar `js/app.js`:
 
 ```js
-import { formatPrice, cakeLink } from './whatsapp.js';
+import { cakeLink, formatPrice } from './whatsapp.js';
 
 const MENU_URL = 'data/menu.json';
 const PHOTOS_DIR = 'img/';
@@ -1116,16 +1115,14 @@ Criar `tests/photos.test.js`. Ele confere só os arquivos que existem em `img/`:
 Este teste importa `MAX_BYTES` e `checkWebp` de `scripts/photo-lib.mjs`, que já está no repositório. Para rodar o bloco abaixo fora do repositório (por exemplo, extraído para uma pasta temporária), leve o `scripts/photo-lib.mjs` e o `data/menu.json` junto, ou pule este teste.
 
 ```js
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
-import { MAX_BYTES, checkWebp } from '../scripts/photo-lib.mjs';
+import { test } from 'node:test';
+import { checkWebp, MAX_BYTES } from '../scripts/photo-lib.mjs';
 
 const HERO_FILE = 'hero.webp';
 
-const cakes = JSON.parse(
-  await readFile(new URL('../data/menu.json', import.meta.url), 'utf8'),
-);
+const cakes = JSON.parse(await readFile(new URL('../data/menu.json', import.meta.url), 'utf8'));
 const imgDir = new URL('../img/', import.meta.url);
 const present = (await readdir(imgDir).catch(() => [])).filter((name) => !name.startsWith('.'));
 const known = new Set([HERO_FILE, ...cakes.map((cake) => cake.photo)]);
@@ -1261,7 +1258,7 @@ git commit -m "feat: imagem da prévia do link (og-image.jpg)"
 
 - [ ] **Step 2: Escrever o teste do `netlify.toml`**
 
-O teste não usa biblioteca de TOML (o projeto não tem dependências): lê as duas chaves que importam, `command` e `publish`, com expressões regulares simples. Ele confere que:
+O teste não usa biblioteca de TOML (os testes não dependem de nenhum pacote): lê as duas chaves que importam, `command` e `publish`, com expressões regulares simples. Ele confere que:
 
 - o `publish` é `dist` e o comando copia para essa mesma pasta;
 - cada caminho depois do `cp -R` existe no repositório (pega erro de digitação e um `og-image.jpg` esquecido);
@@ -1272,13 +1269,13 @@ O teste não usa biblioteca de TOML (o projeto não tem dependências): lê as d
 Criar `tests/netlify.test.js`:
 
 ```js
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 // Netlify publishes the folder named in netlify.toml, and the build command
@@ -1292,19 +1289,26 @@ const toml = await read('netlify.toml').catch(() => '');
 const html = await read('index.html');
 const appSource = await read('js/app.js');
 
-// No TOML library (the project has no dependencies): netlify.toml only needs
+// No TOML library (the tests need no installed package): netlify.toml only needs
 // two string keys, so small regexes read them.
 const command = /^\s*command\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];
 const publish = /^\s*publish\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];
 
 // "cp -R <sources...> <destination>/": everything after cp -R, up to the end of the command.
-const copyArgs = /\bcp\s+-R\s+([^&;|]+)/.exec(command ?? '')?.[1].trim().split(/\s+/) ?? [];
+const copyArgs =
+  /\bcp\s+-R\s+([^&;|]+)/
+    .exec(command ?? '')?.[1]
+    .trim()
+    .split(/\s+/) ?? [];
 const destination = copyArgs.at(-1)?.replace(/\/+$/, '');
 const copied = copyArgs.slice(0, -1);
 
 // "./css/style.css?v=2" -> "css": the top-level entry of the repo that holds the path.
 function firstSegment(value) {
-  return value.split(/[?#]/)[0].replace(/^(?:\.?\/)+/, '').split('/')[0];
+  return value
+    .split(/[?#]/)[0]
+    .replace(/^(?:\.?\/)+/, '')
+    .split('/')[0];
 }
 
 const copiedSegments = new Set(copied.map(firstSegment));
@@ -1324,7 +1328,11 @@ test('netlify.toml publishes dist and the build command copies into that same fo
   assert.ok(publish, 'netlify.toml needs a [build] publish = "..."');
   assert.equal(publish, 'dist');
   assert.ok(copied.length > 0, `expected "cp -R <files> ${publish}/" in the build command, got: ${command}`);
-  assert.equal(destination, publish, `the build command copies into "${destination}", but netlify.toml publishes "${publish}"`);
+  assert.equal(
+    destination,
+    publish,
+    `the build command copies into "${destination}", but netlify.toml publishes "${publish}"`,
+  );
 });
 
 test('every path copied by the build command exists in the repo', () => {
@@ -1365,7 +1373,10 @@ test('the build command copies the files js/app.js fetches and the modules js/*.
       references.push({ from: `js/${script}`, path: path.posix.join('js', specifier) });
     }
   }
-  assert.ok(references.some(({ path: ref }) => ref.startsWith('js/')), 'expected js/app.js to import another module');
+  assert.ok(
+    references.some(({ path: ref }) => ref.startsWith('js/')),
+    'expected js/app.js to import another module',
+  );
   assertCovered(references, 'files used by the scripts');
 });
 
@@ -1400,7 +1411,9 @@ const skipBuild = !hasShell
     ? 'git is not available or this is not a Git checkout'
     : false;
 
-test('the build command, run on a copy of the repo, produces a dist/ with only the site', { skip: skipBuild }, async (t) => {
+test('the build command, run on a copy of the repo, produces a dist/ with only the site', {
+  skip: skipBuild,
+}, async (t) => {
   assert.ok(command && publish, 'netlify.toml needs a [build] command and publish');
   const cwd = await mkdtemp(path.join(tmpdir(), 'netlify-build-'));
   t.after(() => rm(cwd, { recursive: true, force: true }));
@@ -1472,7 +1485,7 @@ git commit -m "feat: publica só os arquivos do site no Netlify (netlify.toml)"
 
 - [ ] **Step 6: Escrever o `README.md`**
 
-O README é a página do projeto no GitHub, então é escrito em inglês (o texto da página do site continua em português, e este plano também). Tem um cabeçalho centralizado com o `og-image.jpg` como banner, selos estáticos, o sumário e as seções About, Features, Tech stack, Project structure, Getting started, Editing the menu, Photos, Testing, Deployment, Conventions e Known gaps. Antes do commit, confira que cada comando e cada link relativo do README funcionam e que a árvore de arquivos e o número de testes batem com o repositório.
+O README é a página do projeto no GitHub, então é escrito em inglês (o texto da página do site continua em português, e este plano também). Tem um cabeçalho centralizado com o `og-image.jpg` como banner, selos (o do CI é dinâmico), o sumário e as seções About, Features, Tech stack, Project structure, Getting started, Editing the menu, Photos, Code quality, Testing, CI/CD, Deployment, Conventions e Known gaps. (O bloco abaixo é o README final: o selo do CI e as seções Code quality e CI/CD, e o que elas citam, só passam a valer com a Task 10.) Antes do commit, confira que cada comando e cada link relativo do README funcionam e que a árvore de arquivos e o número de testes batem com o repositório.
 
 Substituir o conteúdo atual por:
 
@@ -1489,8 +1502,10 @@ Substituir o conteúdo atual por:
 
 [delicias-da-ca.netlify.app](https://delicias-da-ca.netlify.app/)
 
+[![CI](https://github.com/juanveronez/delicias-da-ca/actions/workflows/ci.yml/badge.svg)](https://github.com/juanveronez/delicias-da-ca/actions/workflows/ci.yml)
 [![Node 22](https://img.shields.io/badge/Node-22-339933)](#-getting-started)
-[![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)](package.json)
+[![Runtime dependencies: none](https://img.shields.io/badge/runtime%20deps-none-brightgreen)](package.json)
+[![Code style: Biome](https://img.shields.io/badge/code%20style-Biome-60a5fa)](#-code-quality)
 [![Tests: node:test](https://img.shields.io/badge/tests-node%3Atest-blue)](#-testing)
 [![Hosted on Netlify](https://img.shields.io/badge/hosted%20on-Netlify-00C7B7)](#-deployment)
 
@@ -1505,7 +1520,9 @@ Substituir o conteúdo atual por:
 - [Getting started](#-getting-started)
 - [Editing the menu](#-editing-the-menu)
 - [Photos](#-photos)
+- [Code quality](#-code-quality)
 - [Testing](#-testing)
+- [CI/CD](#-cicd)
 - [Deployment](#-deployment)
 - [Conventions](#-conventions)
 - [Known gaps](#-known-gaps)
@@ -1514,7 +1531,7 @@ Substituir o conteúdo atual por:
 
 Delicias da Cá sells homemade cakes, mostly *bolos de forma* (ring cakes), with delivery in Campinas/SP. This repository is its online menu: one page that shows the flavours, prices and photos and hands the customer over to WhatsApp, where the order is settled. There is no cart, checkout or payment on the site.
 
-It is plain HTML, CSS and JavaScript on purpose. The menu is a JSON file edited by a single person, so there is no build step, no framework to keep up to date and no dependencies to break. Changing a price means editing one line and pushing.
+It is plain HTML, CSS and JavaScript on purpose. The menu is a JSON file edited by a single person, so there is no build step, no framework to keep up to date and no runtime dependencies to break (the only dev dependency is the Biome linter). Changing a price means editing one line and pushing.
 
 The site itself is written in Brazilian Portuguese; this README is in English.
 
@@ -1527,7 +1544,8 @@ The site itself is written in Brazilian Portuguese; this README is in English.
 - Mobile first and accessible: one column on phones and two or three on larger screens, touch targets of at least 44px, button labels that start with their visible text, and a layout that survives enlarged text.
 - The menu is revalidated on every visit (`cache: 'no-cache'`), so a new price shows up right after a deploy.
 - Link previews for WhatsApp and Instagram through Open Graph tags and [`og-image.jpg`](og-image.jpg).
-- 125 tests that need no installed dependencies, including a check that the Netlify build publishes only the site files.
+- 134 tests that need no installed dependencies, including a check that the Netlify build publishes only the site files.
+- A CI/CD pipeline: GitHub Actions lints (Biome) and tests every push and pull request, and Netlify publishes whatever reaches `main` (see [CI/CD](#-cicd)). Biome also keeps the code style uniform (see [Code quality](#-code-quality)).
 
 ## 🧰 Tech stack
 
@@ -1535,7 +1553,9 @@ The site itself is written in Brazilian Portuguese; this README is in English.
 |---|---|
 | Page | HTML5, CSS3 and JavaScript ES modules, no framework and no bundler |
 | Data | [`data/menu.json`](data/menu.json), read with `fetch` |
-| Tests | Node's built-in test runner (`node --test`), Node 22 |
+| Tests | Node's built-in test runner (`node --test`), Node 22 (the version is in [`.nvmrc`](.nvmrc)) |
+| Code quality | [Biome](https://biomejs.dev/) 2.6.4: lint, formatting and import order. The only dev dependency, pinned to an exact version |
+| CI | GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) and Dependabot ([`dependabot.yml`](.github/dependabot.yml)) |
 | Images | WebP, converted with `sips` (macOS) and `cwebp` by [`scripts/prepare-photos.mjs`](scripts/prepare-photos.mjs) |
 | Local server | `python3 -m http.server` (any static server works) |
 | Hosting | [Netlify](https://www.netlify.com/) free plan, configured by [`netlify.toml`](netlify.toml) |
@@ -1547,8 +1567,11 @@ The site itself is written in Brazilian Portuguese; this README is in English.
 ├── index.html                  # the single page: header, notices, menu mount point, how to order
 ├── favicon.svg                 # tab icon: a ring cake drawn in SVG
 ├── og-image.jpg                # 1200x630 link-preview image (also the banner above)
-├── netlify.toml                # what Netlify builds and publishes
-├── package.json                # name, "type": "module" and the test script; no dependencies
+├── netlify.toml                # what Netlify builds and publishes, and that it skips the dev tools
+├── package.json                # name, "type": "module", the test and lint scripts; Biome is the only dev dependency
+├── package-lock.json           # exact dependency versions, used by `npm ci` (locally and in CI)
+├── biome.json                  # Biome settings: style, scope and rules
+├── .nvmrc                      # Node version, read by `nvm use` and by CI
 ├── css/
 │   └── style.css               # styles, mobile first
 ├── js/
@@ -1562,6 +1585,9 @@ The site itself is written in Brazilian Portuguese; this README is in English.
 │   └── photo-lib.mjs           # pure helpers used by the command
 ├── tests/                      # node:test suites (*.test.js)
 ├── docs/superpowers/           # design spec and implementation plan (in Portuguese)
+├── .github/
+│   ├── workflows/ci.yml        # CI: npm ci, npm run lint, npm test
+│   └── dependabot.yml          # weekly pull requests for the actions and for Biome
 ├── .claude/skills/
 │   └── add-cake-photos/        # Claude Code skill for adding photos to the site
 └── fotos-originais/            # original photos; git-ignored, exists only on the owner's machine
@@ -1571,15 +1597,16 @@ The site itself is written in Brazilian Portuguese; this README is in English.
 
 Prerequisites:
 
-- Node 22, to run the tests and the photo converter. The site itself needs no Node.
+- Node 22, to run the tests, the linter and the photo converter. The exact version is in [`.nvmrc`](.nvmrc), so `nvm use` picks it. The site itself needs no Node.
 - Python 3 (or any static file server) to view the site.
 - Only for photo conversion: macOS with `sips` (already there) and `cwebp` (`brew install webp`).
 
-There is nothing to install: do not run `npm install`.
+`npm test` needs no install, because it uses only Node's standard library. `npm ci` is only needed to lint or format the code: it installs Biome, the only dev dependency, at the exact version in `package-lock.json`.
 
 ```bash
 git clone <repository-url>
 cd delicias-da-ca
+nvm use                       # optional: switches to the Node version from .nvmrc
 python3 -m http.server 8000
 ```
 
@@ -1592,6 +1619,8 @@ Run the tests with:
 ```bash
 npm test
 ```
+
+To lint and format the code, see [Code quality](#-code-quality).
 
 ## 📝 Editing the menu
 
@@ -1651,6 +1680,23 @@ rm -r "$NEW"
 
 To have Claude Code do all of this, drop the new photos in the project root or in `fotos-originais/` and ask it to put them on the site. The project skill [`add-cake-photos`](.claude/skills/add-cake-photos/SKILL.md) matches each picture to a cake, converts only the new files, checks the result and commits them by path.
 
+## 🧹 Code quality
+
+[Biome](https://biomejs.dev/) checks the code style, so a diff shows what changed and not how somebody's editor is set up. It is the project's only dev dependency, pinned to an exact version in [`package.json`](package.json) and locked in `package-lock.json`.
+
+```bash
+npm ci                # once: installs Biome (npm test does not need it)
+npm run lint          # read-only: lint rules, formatting and import order; exits non-zero on any problem
+npm run lint:fix      # applies the safe fixes, the formatting and the import order
+```
+
+- **What it covers:** JavaScript, JSON and CSS in `js/`, `scripts/`, `tests/`, `css/` and `data/`, plus `package.json` and `biome.json`. It does not look at `index.html`, `docs/`, the Markdown files, `netlify.toml` or `package-lock.json`, nor at anything Git ignores (`node_modules/`, `dist/`, `fotos-originais/`).
+- **Style:** the one the code already had: single quotes, semicolons, 2 spaces, trailing commas and LF line endings, wrapped at 120 columns. The lint rules are Biome's `recommended` set. `npm run lint` also fails on warnings (`--error-on-warnings`), because in Biome 2.6.4 findings such as an unused variable are warnings, and a plain `biome check` would exit 0 on them.
+- **`data/menu.json` is not formatted.** It is kept one cake per line, so a price change is a one-line diff and the file is easy to edit by hand; Biome's formatter would spread every cake over several lines. [`biome.json`](biome.json) turns the formatter off for that file only (an `overrides` entry, which is documented here because `biome.json` accepts no comments). The linter still checks the file.
+- **Exceptions are narrow and explained.** A few hand-grouped lists (the Exif bytes in a test and the `sips` arguments in the converter) carry `// biome-ignore format: <reason>`. Use the same shape for a lint exception: `// biome-ignore lint/<group>/<rule>: <reason>`.
+
+Run `npm run lint` before pushing: CI runs the same command.
+
 ## ✅ Testing
 
 ```bash
@@ -1658,7 +1704,7 @@ npm test                          # the whole suite
 node --test tests/menu.test.js    # a single file
 ```
 
-The suite has 125 tests and uses only Node's standard library.
+The suite has 134 tests and uses only Node's standard library.
 
 | File | What it covers |
 |---|---|
@@ -1669,10 +1715,59 @@ The suite has 125 tests and uses only Node's standard library.
 | [`tests/photos.test.js`](tests/photos.test.js) | Every file in `img/` is a known cake photo (or the hero) and a valid WebP under 200 KB without metadata. |
 | [`tests/photo-lib.test.js`](tests/photo-lib.test.js), [`tests/prepare-photos.test.js`](tests/prepare-photos.test.js) | The photo converter: its pure helpers, and the command end to end on synthetic images. |
 | [`tests/netlify.test.js`](tests/netlify.test.js) | The Netlify publish list (see [Deployment](#-deployment)). |
+| [`tests/tooling.test.js`](tests/tooling.test.js) | The tooling contract (see [CI/CD](#-cicd)): `.nvmrc`, the `package.json` scripts, Biome pinned exactly and no runtime dependencies, the CI workflow (Node from `.nvmrc`, `npm ci` before lint and tests, read-only permissions, no secrets), `biome.json` (Git-aware, `index.html` out of scope) and `NPM_FLAGS` in `netlify.toml`. |
 
-Two groups of tests skip themselves, with the reason, instead of failing: the converter end-to-end tests when `sips` or `cwebp` is missing, and the build test when `sh` or Git is missing.
+Two groups of tests skip themselves, with the reason, instead of failing: the converter end-to-end tests when `sips` or `cwebp` is missing (which is the case on the Linux CI runner), and the build test when `sh` or Git is missing.
 
 The photos test never fails because a photo is missing. It prints a diagnostic line instead, such as `8 cake(s) without a photo yet: cenoura, cenoura-vulcao, ...; hero.webp present`.
+
+## 🔄 CI/CD
+
+Every change goes through two automated stages, deliberately kept apart:
+
+- **CI (continuous integration):** GitHub Actions lints and tests every push to `main` and every pull request.
+- **CD (continuous delivery):** Netlify builds and publishes everything that reaches `main`.
+
+There is no deploy step in the workflow, so GitHub holds no Netlify token and no other secret.
+
+```mermaid
+flowchart LR
+    change["Push or pull request"] --> checkout
+
+    subgraph ci ["CI: GitHub Actions"]
+        checkout["Checkout"] --> setupNode["Node from .nvmrc"] --> install["npm ci"] --> lint["npm run lint (Biome)"] --> tests["npm test"]
+    end
+
+    tests --> merge["Merge to main"]
+    merge --> build
+
+    subgraph cd ["CD: Netlify"]
+        build["Build from netlify.toml:<br/>copy only the site files into dist/,<br/>NPM_FLAGS omits the dev tools"] --> live["Live at<br/>delicias-da-ca.netlify.app"]
+    end
+```
+
+The arrow from the tests to the merge is a convention, not a gate: Netlify deploys whatever lands on `main` and does not wait for CI. Protecting `main` (last row below) is what turns a red CI into a blocked merge.
+
+| Stage | Where | Runs on | What it checks or does |
+|---|---|---|---|
+| CI: lint and tests | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions (`ubuntu-latest`), on every push to `main` and every pull request | `npm ci`, `npm run lint` (Biome: lint rules, formatting, import order) and `npm test`, with the Node version from `.nvmrc`. Read-only permissions, no secrets, a new push cancels the run still going for the same branch. |
+| Dependency updates | [`.github/dependabot.yml`](.github/dependabot.yml) | GitHub (Dependabot), weekly | Opens up to 3 pull requests per ecosystem to bump the action versions and the exact-pinned Biome. CI runs on each one; a Biome bump may need `biome migrate`, and the run shows it. |
+| CD: build and deploy | [`netlify.toml`](netlify.toml) | Netlify, on every push to `main` | Copies only the site files into `dist/` and publishes that folder; `NPM_FLAGS = "--omit=dev"` keeps Biome out of the build. Details in [Deployment](#-deployment). |
+| Protect `main` (recommended, optional) | GitHub repository settings (branch protection rule or ruleset) | GitHub | Require a pull request and the `check` job of the `CI` workflow before merging. This is a setting on GitHub that the repository cannot enforce by itself. |
+
+What CI does **not** cover:
+
+- The Linux runner has no `sips` or `cwebp`, so the photo converter end-to-end tests skip themselves there (its pure helpers are still tested). Run `npm test` on the Mac after touching `scripts/prepare-photos.mjs`.
+- It does not deploy, and Netlify does not wait for it.
+- The workflow could not be run offline. After the first push, open the **Actions** tab and check that the `CI` run is green; until a run on `main` exists, the badge at the top shows no status.
+- Whether Netlify honours `NPM_FLAGS` has not been verified: after the first deploy, open the deploy log and check that no Biome install appears.
+
+The same checks locally:
+
+```bash
+nvm use                       # the Node version from .nvmrc, the one CI uses
+npm run lint && npm test      # the two checks CI runs after npm ci
+```
 
 ## 🌐 Deployment
 
@@ -1684,17 +1779,23 @@ First time, with the repository on GitHub:
 2. The build settings come from [`netlify.toml`](netlify.toml): there is nothing to type. Confirm the deploy.
 3. The site name is `delicias-da-ca`, so the address is `https://delicias-da-ca.netlify.app/` (**Site configuration** -> **Change site name** changes it). The `og:url` and `og:image` tags in [`index.html`](index.html) must use exactly this address: WhatsApp fetches the preview image from the URL written there, so if the name ever changes, change both tags.
 
-From then on every push to `main` deploys by itself.
+From then on every push to `main` deploys by itself (how this relates to the checks is in [CI/CD](#-cicd)).
 
-**What is published.** The repository root also holds `docs/`, `tests/`, `scripts/`, `.claude/` and `package.json`, which must not be served. So `netlify.toml` publishes a `dist/` folder that the build fills with the site files only:
+**What is published.** The repository root also holds `docs/`, `tests/`, `scripts/`, `.claude/`, `.github/` and `package.json`, which must not be served. So `netlify.toml` publishes a `dist/` folder that the build fills with the site files only:
 
 ```toml
 [build]
   command = "mkdir -p dist && cp -R index.html favicon.svg og-image.jpg css js data img dist/"
   publish = "dist"
+
+# The page needs no npm packages: keep the dev tools (Biome) out of the deploy.
+[build.environment]
+  NPM_FLAGS = "--omit=dev"
 ```
 
 `dist/` is created by the build and is git-ignored. What is served is exactly the `cp -R` list: if the page ever needs another top-level file or folder, add it there. [`tests/netlify.test.js`](tests/netlify.test.js) catches a miss, and also a typo in the list, an internal folder that sneaks in, and a `publish` that differs from the copy destination. It even runs the build command on a temporary copy of the repository and checks the resulting `dist/`.
+
+**No dev tools in the deploy.** Netlify runs `npm install` whenever it finds a `package.json`. The page needs no npm package, so `NPM_FLAGS = "--omit=dev"` makes that install skip the dev dependencies (Biome). [`tests/tooling.test.js`](tests/tooling.test.js) checks that the line is there; whether Netlify honours it is checked once in the deploy log (see [CI/CD](#-cicd)).
 
 **Link preview.** [`og-image.jpg`](og-image.jpg) is what WhatsApp and Instagram show when the link is shared. It is a 1200x630 JPEG of about 230 KB, cropped from `img/hero.webp` (a WebP is not reliable for previews). To replace it, keep the format, the 1200x630 size and a weight under 300 KB: `npm test` checks all three and the `og:image:width`/`og:image:height` tags. The steps used to generate it are in Task 9 of the [implementation plan](docs/superpowers/plans/2026-10-29-cardapio-online.md).
 
@@ -1706,6 +1807,7 @@ To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previe
 - Text that the site visitor sees (page copy, `alt` and `aria-label`, meta tags, the WhatsApp message and the cake names) is in Portuguese.
 - Deliberate exception: cake `id`s and the photo names derived from them follow the product name in Portuguese (`cenoura-vulcao`, `cenoura-vulcao.webp`).
 - Commit messages are in Portuguese.
+- Code style is enforced by Biome: `npm run lint:fix` fixes it, `npm run lint` (and CI) checks it. See [Code quality](#-code-quality).
 - The documents in [`docs/`](docs/superpowers) are in Portuguese. This README is in English because it is the project's page on GitHub.
 
 ## 🧩 Known gaps
@@ -1738,3 +1840,437 @@ git commit -m "docs: README final e publicação no Netlify"
 - [ ] Abrir `https://delicias-da-ca.netlify.app/package.json` e `https://delicias-da-ca.netlify.app/docs/`: devem dar erro 404 (página não encontrada), provando que só os arquivos do site foram publicados.
 - [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto dos bolos). O WhatsApp guarda as prévias em cache: para testar de novo, acrescentar `?v=2` ao link. Se a foto não aparecer, abrir https://delicias-da-ca.netlify.app/og-image.jpg no navegador para ver se o arquivo está no ar.
 - [ ] Confirmar com a Cá os horários de encomenda e a grafia "Delicias" (pontos em aberto da spec).
+
+---
+
+### Task 10: Qualidade de código (Biome) e CI
+
+**Gate:** as Tasks 1 a 9 estão prontas e `npm test` passa. O sandbox do Claude Code não tem rede, então o `npm install` do Step 1 é rodado pelo dono num Terminal comum. O repositório no GitHub é `juanveronez/delicias-da-ca`.
+
+**Por que isso.** Até aqui só o `npm test` conferia o projeto, e o estilo do código era mantido à mão. O Biome (lint, formatação e ordem dos imports) torna o estilo verificável. O GitHub Actions roda o lint e os testes em todo push na `main` e em todo pull request, e o Dependabot mantém as versões em dia. O deploy continua sendo só do Netlify (cada push na `main` publica): o workflow não tem passo de deploy nem segredo. Como o Netlify roda `npm install` quando existe um `package.json`, o `netlify.toml` define `NPM_FLAGS = "--omit=dev"`, para o Biome não ser instalado no deploy.
+
+**Files:**
+- Create: `.nvmrc`
+- Create: `biome.json`
+- Create: `package-lock.json` (gerado pelo `npm` no Step 1)
+- Create: `tests/tooling.test.js`
+- Create: `.github/workflows/ci.yml`
+- Create: `.github/dependabot.yml`
+- Modify: `package.json` (o devDependency e os scripts `lint` e `lint:fix`)
+- Modify: `netlify.toml` (o `NPM_FLAGS`)
+- Modify (formatação do Biome): os arquivos de `js/`, `scripts/` e `tests/`. Os blocos deles neste plano (Tasks 2, 4, 6, 8 e 9) já mostram o código formatado.
+- Modify: `README.md`, a spec e este plano
+
+- [ ] **Step 1: Instalar o Biome (o dono roda, num Terminal comum)**
+
+```bash
+npm install --save-dev --save-exact @biomejs/biome
+node_modules/.bin/biome --version
+```
+
+Expected: `Version: 2.6.4` (ou a versão atual). O `package.json` ganha `devDependencies` com a versão exata, sem `^` nem `~` (é a opção `--save-exact`), e aparece o `package-lock.json`. O `node_modules/` já está no `.gitignore`. O lockfile tem de listar os binários do Biome de todas as plataformas (`@biomejs/cli-linux-x64` e `-musl`, entre outros), porque o `npm ci` do CI roda no Ubuntu.
+
+- [ ] **Step 2: Criar `.nvmrc`**
+
+Criar `.nvmrc`:
+
+```text
+22
+```
+
+O `nvm use` e o `actions/setup-node` (`node-version-file`) leem este arquivo, então o Node do computador e o do CI são o mesmo.
+
+- [ ] **Step 3: Criar `biome.json`**
+
+Não confie na memória do esquema de configuração: ele muda entre versões (no 2.6.4 as regras recomendadas se ligam com `"preset": "recommended"`, e `biome init` mostra o padrão da versão instalada). Decisões:
+
+- **Estilo:** o que o código já tinha (aspas simples, ponto e vírgula, 2 espaços, vírgula final, parênteses sempre nas arrow functions, LF), para a formatação mexer pouco.
+- **Largura de linha: 120.** Medida nas 2.374 linhas de `js/`, `scripts/` e `tests/`: percentis 50, 75, 90, 95 e 99 de 40, 71, 92, 102 e 127 colunas. Com 100 colunas a formatação alterou cerca de 720 linhas; com 120, cerca de 300 (com 140, só mais uns 75 a menos, e linhas bem largas).
+- **Escopo (`files.includes`):** `js/`, `scripts/`, `tests/`, `css/`, `data/`, `package.json` e `biome.json`. O `index.html`, as imagens, `docs/`, os `*.md`, `.claude/`, `netlify.toml` e `package-lock.json` não são do Biome. `vcs.useIgnoreFile` faz o Biome pular o que o Git ignora (`node_modules/`, `dist/`, `fotos-originais/`).
+- **Lint:** só o `recommended`, sem grupos extras e sem regra desligada.
+- **`data/menu.json`:** o formatador do Biome espalharia cada bolo em várias linhas, e o arquivo é mantido com um bolo por linha (diff de uma linha por preço, edição à mão fácil). A configuração mais curta é desligar o formatador só para esse arquivo, em `overrides`; o linter continua valendo. O `biome.json` não aceita comentários, então o motivo fica na spec e no README.
+
+Criar `biome.json`:
+
+```json
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["js/**", "scripts/**", "tests/**", "css/**", "data/**", "package.json", "biome.json"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 120
+  },
+  "linter": {
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "css": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["data/menu.json"],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
+}
+```
+
+- [ ] **Step 4: Acrescentar os scripts ao `package.json`**
+
+O script `test` não muda. O `lint` só lê (não grava nada) e usa `--error-on-warnings`: no Biome 2.6.4 achados como variável não usada são avisos, e o `biome check` sozinho sairia com código 0 mesmo com eles.
+
+Substituir o conteúdo de `package.json` por:
+
+```json
+{
+  "name": "delicias-da-ca",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "lint": "biome check --error-on-warnings .",
+    "lint:fix": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4"
+  }
+}
+```
+
+- [ ] **Step 5: Commit da configuração**
+
+Run: `npm test`
+Expected: `ℹ fail 0`.
+
+```bash
+git add package.json package-lock.json biome.json
+git commit -m "chore: adiciona o Biome 2.6.4 como devDependency e a configuração de lint"
+```
+
+- [ ] **Step 6: Corrigir os achados do linter**
+
+Run: `node_modules/.bin/biome lint .`
+
+Em cada achado, decida se é um problema de verdade (corrija o código), uma exceção intencional (um `// biome-ignore lint/<grupo>/<regra>: <motivo>` pontual) ou uma regra que conflita com uma decisão do projeto (só então desligue a regra, com o motivo ao lado). Neste projeto o resultado foi:
+
+| Regra | Achados | O que era | O que foi feito |
+|---|---|---|---|
+| `lint/correctness/noUnusedFunctionParameters` | 5, todos em `tests/photo-lib.test.js` | Estilo, não bug: callbacks `pixel(x, y)` que só usam `y`; o `x` não sai porque vem primeiro na assinatura | `x` virou `_x` |
+
+`js/` e `scripts/` não tiveram achados.
+
+Run: `npm test`
+Expected: `ℹ fail 0`.
+
+```bash
+git add tests/photo-lib.test.js
+git commit -m "style: corrige os achados do linter do Biome"
+```
+
+- [ ] **Step 7: Formatar o código**
+
+Antes, proteja as listas escritas à mão em grupos com sentido (o formatador poria um item por linha): os bytes do cabeçalho Exif em `tests/prepare-photos.test.js` e os dois `run('sips', [...])` em `scripts/prepare-photos.mjs` ganham, na linha de cima, `// biome-ignore format: <motivo>`.
+
+Run: `npm run lint:fix`
+
+Revise o diff inteiro (`git diff`) à procura do que mude o comportamento: o esperado é só espaço, quebra de linha e vírgula final, mais a ordem dos imports (`node:test` passa a vir depois dos outros `node:`). Aspas, escapes (`\0`), regexes e strings não podem mudar; `data/menu.json`, `css/` e `package.json` não mudam.
+
+Run: `npm test` e `npm run lint`
+Expected: `ℹ fail 0` e o `lint` sai com código 0. Rode `npm run lint:fix` de novo: o `git status` não pode mostrar nada novo (a formatação é idempotente).
+
+```bash
+git add js scripts tests
+git commit -m "style: formata o código com o Biome"
+```
+
+- [ ] **Step 8: Escrever o teste do contrato das ferramentas e ver falhar**
+
+O teste não usa biblioteca de YAML nem de TOML: lê as poucas chaves que importam com expressões regulares. Ele confere que:
+
+- o `.nvmrc` tem uma versão do Node (`22`, `22.15` ou `22.15.0`);
+- o `package.json` tem os scripts `test`, `lint` (que não grava) e `lint:fix`, o `@biomejs/biome` em versão exata em `devDependencies` e nenhuma chave `dependencies`;
+- o `ci.yml` usa `node-version-file: .nvmrc`, roda `npm ci` antes de `npm run lint` e de `npm test`, só dá a permissão `contents: read` e não usa `secrets.`;
+- o `biome.json` liga o uso do `.gitignore` pelo Git e não inclui o `index.html`;
+- o `netlify.toml` tem `NPM_FLAGS = "--omit=dev"` em `[build.environment]`. O parser do `tests/netlify.test.js` (regexes para `command` e `publish`) não se confunde com essa tabela nova, então ele não muda.
+
+Criar `tests/tooling.test.js`:
+
+```js
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { test } from 'node:test';
+
+// The page has no runtime dependencies, and `npm test` must keep working without `npm install`.
+// So there is no YAML/TOML parser here: small regexes read the few keys that matter.
+// These tests pin what the npm scripts, the CI workflow, Biome and Netlify have to agree on.
+
+const read = (file) => readFile(new URL(`../${file}`, import.meta.url), 'utf8');
+
+const packageJson = JSON.parse(await read('package.json'));
+const biomeConfig = JSON.parse(await read('biome.json').catch(() => '{}'));
+const netlifyToml = await read('netlify.toml').catch(() => '');
+// Comment lines are dropped, so a "# npm ci" note is never mistaken for a step.
+const workflow = (await read('.github/workflows/ci.yml').catch(() => '')).replace(/^\s*#.*$/gm, '');
+
+// "run: npm ci" lines, in file order. The workflow keeps every command on a single line.
+const commands = [...workflow.matchAll(/^\s*(?:-\s+)?run:\s*(.+?)\s*$/gm)].map(([, command]) => command);
+
+// The entries under every "permissions:" key, for example ["contents: read"].
+function permissionEntries(yaml) {
+  const lines = yaml.split('\n');
+  const entries = [];
+  lines.forEach((line, index) => {
+    const match = /^(\s*)permissions:\s*(.*)$/.exec(line);
+    if (!match) return;
+    // "permissions: write-all" or "permissions: {}" on the same line.
+    if (match[2]) {
+      entries.push(`permissions: ${match[2]}`);
+      return;
+    }
+    for (const next of lines.slice(index + 1)) {
+      if (next.trim() === '') continue;
+      if (next.length - next.trimStart().length <= match[1].length) break;
+      entries.push(next.trim());
+    }
+  });
+  return entries;
+}
+
+const globTokens = { '**/': '(?:.*/)?', '**': '.*', '*': '[^/]*' };
+
+// Biome's files.includes: patterns are read in order and a leading "!" removes what matched.
+// A pattern without "/" is tried at any depth, which only makes this check stricter.
+function isLinted(file, includes) {
+  if (!Array.isArray(includes)) return true;
+  let linted = false;
+  for (const pattern of includes) {
+    const negated = pattern.startsWith('!');
+    const glob = negated ? pattern.slice(1) : pattern;
+    const source = glob.replace(/\*\*\/|\*\*|\*|[.+^${}()|[\]\\]/g, (token) => globTokens[token] ?? `\\${token}`);
+    const matches = new RegExp(glob.includes('/') ? `^${source}$` : `(?:^|/)${source}$`).test(file);
+    if (matches) linted = !negated;
+  }
+  return linted;
+}
+
+test('.nvmrc holds a bare Node version', async () => {
+  const version = (await read('.nvmrc')).trim();
+  assert.match(version, /^\d+(\.\d+){0,2}$/, `.nvmrc should look like "22" or "22.15.0", got "${version}"`);
+});
+
+test('package.json has the test, lint and lint:fix scripts', () => {
+  const scripts = packageJson.scripts ?? {};
+  for (const name of ['test', 'lint', 'lint:fix']) {
+    assert.ok(scripts[name], `package.json needs a "${name}" script`);
+  }
+  assert.match(scripts.test, /\bnode --test\b/);
+  assert.match(scripts.lint, /\bbiome check\b/);
+  assert.doesNotMatch(scripts.lint, /--write|--fix/, '"lint" must only read: CI should fail, not rewrite files');
+  assert.match(scripts['lint:fix'], /\bbiome check\b.*--write\b/);
+});
+
+test('package.json pins Biome to an exact version', () => {
+  const version = packageJson.devDependencies?.['@biomejs/biome'];
+  assert.match(
+    String(version),
+    /^\d+\.\d+\.\d+$/,
+    `expected "@biomejs/biome": "x.y.z" in devDependencies, got ${version}`,
+  );
+});
+
+test('package.json has no runtime dependencies', () => {
+  assert.equal('dependencies' in packageJson, false, 'the page needs no npm package: use devDependencies for tools');
+});
+
+test('the CI workflow takes Node from .nvmrc', () => {
+  assert.ok(workflow.trim(), '.github/workflows/ci.yml is missing or empty');
+  assert.match(workflow, /^\s*node-version-file:\s*["']?\.nvmrc["']?\s*$/m);
+});
+
+test('the CI workflow runs npm ci, then npm run lint, then npm test', () => {
+  const [install, lint, tests] = ['npm ci', 'npm run lint', 'npm test'].map((command) => commands.indexOf(command));
+  assert.deepEqual(
+    [install >= 0, lint >= 0, tests >= 0],
+    [true, true, true],
+    `the workflow needs "run: npm ci", "run: npm run lint" and "run: npm test" steps, found: ${commands.join(' | ')}`,
+  );
+  assert.ok(install < lint, '"npm ci" must come before "npm run lint"');
+  assert.ok(install < tests, '"npm ci" must come before "npm test"');
+});
+
+test('the CI workflow grants only read access to the repository contents and uses no secrets', () => {
+  assert.ok(workflow.trim(), '.github/workflows/ci.yml is missing or empty');
+  assert.match(workflow, /^permissions:/m, 'set permissions at the top level, otherwise the repo default applies');
+  const entries = permissionEntries(workflow);
+  assert.deepEqual([...new Set(entries)], ['contents: read'], `unexpected permissions: ${entries.join(', ')}`);
+  assert.doesNotMatch(workflow, /\bsecrets\./, 'CI only reads and tests the code: it needs no secrets');
+});
+
+test('biome.json skips git-ignored files and does not lint index.html', () => {
+  assert.equal(biomeConfig.vcs?.enabled, true, 'biome.json needs "vcs.enabled": true');
+  assert.equal(biomeConfig.vcs?.clientKind, 'git');
+  assert.equal(biomeConfig.vcs?.useIgnoreFile, true, 'node_modules/, dist/ and fotos-originais/ come from .gitignore');
+  const includes = biomeConfig.files?.includes;
+  assert.ok(Array.isArray(includes) && includes.length > 0, 'biome.json needs a "files.includes" list');
+  assert.equal(isLinted('index.html', includes), false, 'index.html is not checked by Biome');
+  for (const file of [
+    'js/app.js',
+    'scripts/photo-lib.mjs',
+    'tests/tooling.test.js',
+    'css/style.css',
+    'data/menu.json',
+  ]) {
+    assert.equal(isLinted(file, includes), true, `${file} should be checked by Biome`);
+  }
+});
+
+test('netlify.toml keeps the dev tools out of the Netlify build', () => {
+  const environment = /^\[build\.environment\]([^[]*)/m.exec(netlifyToml)?.[1] ?? '';
+  assert.match(
+    environment,
+    /^\s*NPM_FLAGS\s*=\s*"--omit=dev"\s*$/m,
+    'expected NPM_FLAGS = "--omit=dev" under [build.environment]',
+  );
+});
+```
+
+Run: `npm test`
+Expected: os 4 testes do `ci.yml` e do `NPM_FLAGS` falham (o workflow e o `NPM_FLAGS` ainda não existem); os 5 outros já passam. Depois de implementar, vale uma checagem de mutação: copie os arquivos para uma pasta temporária, estrague uma coisa de cada vez (`^2.6.4`, `npm ci` depois do `npm test`, `permissions: write-all`, `${{ secrets.X }}`, `useIgnoreFile: false`, `index.html` em `files.includes`, `NPM_FLAGS` fora de `[build.environment]`) e confira que o teste certo falha.
+
+- [ ] **Step 9: Criar o workflow, o Dependabot e o `NPM_FLAGS`**
+
+O workflow só confere (lint e testes): não publica nada, porque o Netlify já faz o deploy a cada push na `main`. As versões `v4` das actions são válidas, mas podem existir versões mais novas (o Dependabot propõe a troca). No runner Linux não há `sips` nem `cwebp`, então os testes de ponta a ponta do conversor são pulados: é o esperado.
+
+Criar `.github/workflows/ci.yml`:
+
+```yaml
+# Checks every change: formatting and lint (Biome), then the tests.
+# It does not deploy: Netlify publishes the site by itself when `main` changes.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the same branch or pull request cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node (version from .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install the dev tools
+        run: npm ci
+
+      - name: Lint and check the formatting
+        run: npm run lint
+
+      # The photo converter tests need macOS (sips) and cwebp, so this runner skips them.
+      - name: Test
+        run: npm test
+```
+
+Criar `.github/dependabot.yml`:
+
+```yaml
+version: 2
+updates:
+  # Keeps the versions of the actions used in .github/workflows up to date.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  # Keeps the exact-pinned Biome fresh. A new Biome release may need `npx biome migrate`
+  # for biome.json; the CI run of the pull request shows it.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+```
+
+Substituir o conteúdo de `netlify.toml` por:
+
+```toml
+[build]
+  command = "mkdir -p dist && cp -R index.html favicon.svg og-image.jpg css js data img dist/"
+  publish = "dist"
+
+# The page needs no npm packages: keep the dev tools (Biome) out of the deploy.
+[build.environment]
+  NPM_FLAGS = "--omit=dev"
+```
+
+Run: `npm test` e `npm run lint`
+Expected: `ℹ fail 0` e o `lint` sai com código 0. Para validar o YAML sem rede: `ruby -ryaml -e 'YAML.safe_load(File.read(".github/workflows/ci.yml"))'` (e o mesmo para o `dependabot.yml`). Só o GitHub confirma de verdade que o workflow é aceito.
+
+- [ ] **Step 10: Commit do CI**
+
+```bash
+git add .github/workflows/ci.yml .github/dependabot.yml tests/tooling.test.js netlify.toml
+git commit -m "ci: workflow de CI (testes e Biome), dependabot e NPM_FLAGS no Netlify"
+```
+
+- [ ] **Step 11: Documentação**
+
+O `README.md` (em inglês) ganha o selo do CI, o Biome na tabela de tecnologias, as seções Code quality e CI/CD (com o fluxograma em Mermaid), o `.nvmrc` no Getting started e a estrutura de arquivos atualizada; a spec e este plano (em português) descrevem o mesmo. Como a formatação mudou os arquivos de código, todos os blocos "Criar" deste plano foram copiados de novo dos arquivos do repositório, e o bloco do README na Task 9 é igual ao `README.md`.
+
+```bash
+git add README.md docs/superpowers/specs/2026-10-29-cardapio-online-design.md docs/superpowers/plans/2026-10-29-cardapio-online.md
+git commit -m "docs: documenta o Biome, o CI e o .nvmrc"
+```
+
+- [ ] **Step 12: Conferir no GitHub e no Netlify (só depois de enviar a branch; o dono)**
+
+- [ ] Abrir a aba **Actions** do repositório e conferir que a execução do `CI` (job `check`) passa. O workflow não pôde ser executado offline, e o selo do README só mostra um estado depois de uma execução na `main`.
+- [ ] No log do primeiro deploy do Netlify, conferir que nenhuma instalação do Biome aparece (o `NPM_FLAGS = "--omit=dev"` ainda não foi confirmado por um deploy real).
+- [ ] Opcional, recomendado: proteger a `main` nas configurações do GitHub (exigir pull request e o job `check` do workflow `CI`). O Netlify publica o que chegar na `main` sem esperar o CI; é a proteção que transforma um CI vermelho em merge bloqueado.

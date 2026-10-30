@@ -24,9 +24,11 @@ Um cardápio online para a Delicias da Cá vender bolos caseiros em Campinas/SP,
 | Entrega | Taxa combinada no WhatsApp. |
 | Estilo | **A · Rústico artesanal**: papel creme, marrom e verde, tipografia manuscrita. Segue a identidade do cardápio atual. |
 | Manutenção | Quem edita o cardápio é o desenvolvedor, num arquivo JSON. Não há painel nem login. |
-| Tecnologia | HTML, CSS e JavaScript puros, sem build e sem framework. |
+| Tecnologia | HTML, CSS e JavaScript puros, sem build e sem framework. A página não tem dependência de execução: nenhum pacote npm vai ao ar. |
 | Dados | Os bolos ficam em `data/menu.json`, só dados, sem código. |
-| Publicação | Netlify, plano gratuito, em https://delicias-da-ca.netlify.app/. O Netlify publica só os arquivos listados no `netlify.toml` (copiados para `dist/`), não o repositório inteiro. |
+| Qualidade de código | Biome 2.6.4 (lint, formatação e ordem dos imports), o único `devDependency`, em versão exata (sem `^` nem `~`), com o `package-lock.json` versionado. `npm run lint` confere e `npm run lint:fix` corrige. Estilo: aspas simples, ponto e vírgula, 2 espaços, vírgula final e 120 colunas. Detalhes em "Qualidade de código e CI/CD". |
+| CI/CD | **CI:** o GitHub Actions (`.github/workflows/ci.yml`) roda `npm ci`, `npm run lint` e `npm test` em todo push na `main` e em todo pull request, com o Node de `.nvmrc`. **CD:** o Netlify publica tudo o que chega na `main`. O workflow não faz deploy. O Dependabot (`.github/dependabot.yml`) abre PRs semanais para as actions e para o Biome. |
+| Publicação | Netlify, plano gratuito, em https://delicias-da-ca.netlify.app/. O Netlify publica só os arquivos listados no `netlify.toml` (copiados para `dist/`), não o repositório inteiro. O mesmo arquivo define `NPM_FLAGS = "--omit=dev"`, para o Netlify não instalar o Biome no deploy. |
 
 ## Convenções de código
 
@@ -98,7 +100,7 @@ Os preços vêm da imagem do cardápio atual.
 index.html
 favicon.svg                → ícone da aba: um bolo de forma desenhado em SVG
 og-image.jpg               → prévia do link no WhatsApp e no Instagram (JPEG, 1200x630)
-netlify.toml               → o que o Netlify publica: copia só os arquivos do site para dist/
+netlify.toml               → o que o Netlify publica: copia só os arquivos do site para dist/; NPM_FLAGS = "--omit=dev" deixa o Biome fora do deploy
 css/style.css
 data/menu.json
 js/whatsapp.js             → funções puras: montar o link e formatar o preço
@@ -106,9 +108,14 @@ js/app.js                  → busca o JSON, monta os cards, trata erros
 scripts/photo-lib.mjs      → funções puras do conversor de fotos
 scripts/prepare-photos.mjs → converte as fotos de fotos-originais/ para img/*.webp
 img/                       → fotos otimizadas
-tests/                     → testes
-.gitignore                 → ignora, entre outros, dist/ (a pasta que o build do Netlify gera)
-package.json               → só "name", "private", "type" e o script "test"; sem dependências
+tests/                     → testes (inclui tooling.test.js, o contrato entre .nvmrc, package.json, CI, biome.json e netlify.toml)
+.gitignore                 → ignora, entre outros, node_modules/ e dist/ (a pasta que o build do Netlify gera)
+package.json               → "name", "private", "type", os scripts "test", "lint" e "lint:fix" e o Biome como único devDependency (versão exata); sem dependências de execução
+package-lock.json          → versões exatas da árvore de dependências; o CI instala com npm ci
+biome.json                 → configuração do Biome: estilo, escopo (js, scripts, tests, css, data) e regras recommended
+.nvmrc                     → versão do Node (22), lida pelo nvm use e pelo CI
+.github/workflows/ci.yml   → CI: npm ci, npm run lint e npm test
+.github/dependabot.yml     → PRs semanais para as versões das actions e do Biome
 README.md                  → página do projeto no GitHub, em inglês
 ```
 
@@ -159,7 +166,7 @@ A página tem `title`, `meta description` e tags Open Graph, para o link aparece
 
 ## Testes
 
-Usam o executor do próprio Node (`node --test`), sem instalar nada.
+Usam o executor do próprio Node (`node --test`), sem instalar nada: o `npm test` não precisa do `npm ci`, que só é necessário para o lint.
 
 - **Link do WhatsApp:** número correto, mensagem codificada, nome com acento e com espaço (ex.: "Paçoca vulcão"), botão geral sem bolo.
 - **Preço:** `50` vira `R$ 50,00`; `30` vira `R$ 30,00`.
@@ -170,11 +177,36 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 - **`photos.test.js`:** valida as fotos que existem em `img/`: cada arquivo tem de ser citado no `data/menu.json` (ou ser o `hero.webp`) e passar no `checkWebp` de `scripts/photo-lib.mjs` (container WebP íntegro, até 200 KB, sem EXIF nem XMP), a mesma checagem que o conversor faz ao gravar. A falta de uma foto não reprova: o teste lista os bolos ainda sem foto (e se o `hero.webp` já existe) sem falhar.
 - **`photo-lib.test.js`:** as funções puras do conversor (`scripts/photo-lib.mjs`): quando reduzir (nunca ampliar; exatamente 800px não reduz), leitura de BMP de 24 e 32 bits (de baixo para cima e de cima para baixo, com a sobra de bytes no fim de cada linha), detecção das tarjas pretas (inclusive o caso real de 540x1158, com recorte de 4px, e a faixa de 5 linhas do `hero.png`, que passa do mínimo de 4px), correspondência exata do nome do arquivo com o `id` (maiúsculas, acento decomposto, arquivo oculto) e a validação do WebP (container, tamanho, EXIF e XMP). O limite de 200 KB (`MAX_BYTES`) tem um só lugar: o `photos.test.js` o importa dessa biblioteca.
 - **`prepare-photos.test.js`:** de ponta a ponta. Gera PNGs sintéticos, roda o comando e confere as medidas e o conteúdo dos WebP gravados (tarjas recortadas no lugar certo, nada ampliado, rotação aplicada), os nomes ignorados, o erro de dois arquivos para o mesmo `id`, o `--dry-run` que não grava nada, o `--no-crop` (geral, por `id`, `id` desconhecido e um fundo quase preto), a gravação atômica (sem temporário sobrando, e um link simbólico no destino é substituído sem tocar no arquivo para onde apontava), o arquivo de origem vazio e as mensagens quando faltam `sips` ou `cwebp`. É pulado, com o motivo, onde essas ferramentas não existem; o `npm test` continua passando.
+- **`tooling.test.js`:** guarda o que o `package.json`, o CI, o Biome e o Netlify combinam entre si, sem biblioteca de YAML nem de TOML (só expressões regulares). O `.nvmrc` tem uma versão do Node (`22`, `22.15` ou `22.15.0`); o `package.json` tem os scripts `test`, `lint` (só lê, não grava) e `lint:fix`, o Biome fixado em versão exata em `devDependencies` e nenhuma chave `dependencies`; o `ci.yml` usa `node-version-file: .nvmrc`, roda `npm ci` antes de `npm run lint` e de `npm test`, só dá a permissão `contents: read` e não usa `secrets.`; o `biome.json` liga o uso do `.gitignore` pelo Git e não inclui o `index.html`; e o `netlify.toml` tem `NPM_FLAGS = "--omit=dev"` em `[build.environment]`. O parser simples do `netlify.test.js` (`command` e `publish`) não se confunde com essa nova tabela.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
+- No runner Linux do CI não há `sips` nem `cwebp`, então os testes de ponta a ponta do conversor são pulados, com o motivo. É o esperado: ao mexer em `scripts/prepare-photos.mjs`, rode o `npm test` no Mac.
+
+## Qualidade de código e CI/CD
+
+### Biome
+
+- É o único `devDependency` do projeto (`@biomejs/biome`, versão exata `2.6.4` no `package.json`, com o `package-lock.json` versionado). `npm ci` instala; o `npm test` não precisa dele.
+- `npm run lint` (`biome check --error-on-warnings .`) só lê: confere o lint, a formatação e a ordem dos imports e sai com código diferente de zero se achar qualquer coisa. O `--error-on-warnings` é necessário porque, no Biome 2.6.4, achados como variável não usada são avisos, e o `biome check` sozinho sairia com código 0. `npm run lint:fix` (`biome check --write .`) aplica as correções seguras, a formatação e a ordem dos imports.
+- Escopo (`files.includes` do `biome.json`): `js/`, `scripts/`, `tests/`, `css/`, `data/`, `package.json` e `biome.json`. Ficam de fora o `index.html`, `docs/`, os `*.md`, `.claude/`, `netlify.toml` e `package-lock.json`. O que o Git ignora (`node_modules/`, `dist/`, `fotos-originais/`) também fica de fora (`vcs.useIgnoreFile`).
+- Estilo: o que o código já tinha (aspas simples, ponto e vírgula, 2 espaços, vírgula final, parênteses sempre nas arrow functions, fim de linha LF), com linhas de até 120 colunas. A largura foi escolhida medindo o código: os percentis 90, 95 e 99 das linhas de `js/`, `scripts/` e `tests/` são 92, 102 e 127 colunas, e 120 foi a largura que menos mexeu no código existente (cerca de 300 linhas alteradas, contra cerca de 720 com 100 colunas). Regras de lint: o conjunto `recommended`, sem grupos extras e sem regra desligada.
+- `data/menu.json` fica sem formatador, de propósito: ele é mantido com um bolo por linha, para a mudança de um preço ser um diff de uma linha e para a edição à mão ser fácil, e o formatador do Biome espalharia cada bolo em várias linhas. O `biome.json` desliga o formatador só para esse arquivo (`overrides`); o linter continua valendo. O `biome.json` não aceita comentários, então o motivo fica aqui e no README.
+- Exceções são pontuais e comentadas: `// biome-ignore format: <motivo>` nas três listas escritas à mão em grupos (os bytes do cabeçalho Exif em `tests/prepare-photos.test.js` e os argumentos do `sips` em `scripts/prepare-photos.mjs`). Para o lint, o formato é `// biome-ignore lint/<grupo>/<regra>: <motivo>`.
+
+### CI e CD
+
+1. **CI (GitHub Actions, `.github/workflows/ci.yml`).** Roda em todo push na `main` e em todo pull request, num `ubuntu-latest` com limite de 10 minutos: `actions/checkout`, `actions/setup-node` com `node-version-file: .nvmrc` e cache do npm, `npm ci`, `npm run lint` e `npm test`. Permissão só de leitura (`contents: read`), sem segredos, e um push novo na mesma branch cancela a execução anterior (`concurrency`). Os testes de ponta a ponta do conversor são pulados no Linux (veja "Testes").
+2. **Dependabot (`.github/dependabot.yml`).** Toda semana, até 3 PRs por ecossistema (`github-actions` e `npm`) para manter as versões das actions e o Biome fixado em dia. Uma versão nova do Biome pode pedir `biome migrate`; o CI do PR mostra.
+3. **CD (Netlify, `netlify.toml`).** Cada push na `main` dispara o build do Netlify, que copia só os arquivos do site para `dist/` e publica essa pasta em https://delicias-da-ca.netlify.app/. O `NPM_FLAGS = "--omit=dev"` evita que o Netlify instale o Biome, já que a página não usa pacote nenhum.
+
+O fluxo é: push ou pull request, CI (checkout, Node do `.nvmrc`, `npm ci`, `npm run lint`, `npm test`), merge na `main`, build do Netlify e site no ar. A ordem entre o CI e o merge é uma convenção, não uma trava: o Netlify publica o que chegar na `main` e não espera o CI. Por isso o workflow não tem passo de deploy (o GitHub não guarda token do Netlify nem segredo algum), e recomenda-se proteger a `main` no GitHub, exigindo pull request e o job `check` do workflow `CI`. Essa proteção é uma configuração do GitHub, que o repositório não consegue impor sozinho.
+
+Localmente, o equivalente é `nvm use` (lê o `.nvmrc`), `npm run lint` e `npm test`.
 
 ## Como rodar localmente
 
 O navegador bloqueia a leitura do JSON e também os módulos JavaScript quando o `index.html` é aberto com duplo clique, e a página fica sem cardápio (só o título). Para ver o site, use um servidor local, por exemplo `python3 -m http.server`, e abra `http://localhost:8000`. No Netlify isso funciona sem ajuste.
+
+A versão do Node vem do `.nvmrc` (`nvm use`). O `npm test` não precisa de instalação; o `npm ci` só é necessário para rodar o lint e a formatação (`npm run lint`, `npm run lint:fix`).
 
 ## Fora do escopo
 
@@ -185,7 +217,7 @@ Carrinho, filtros e busca, painel de edição, pagamento online, frete por bairr
 - A pasta `.superpowers/` (usada só nesta fase de design) entra no `.gitignore`.
 - Os dois prints na raiz (`Screenshot 2026-10-29 at ...png`) são material de referência e mostram o WhatsApp Web pessoal. Eles não devem ir para o site publicado nem para o repositório público. Devem sair da raiz ou ser ignorados (o `.gitignore` os ignora, e o build do Netlify só copia os arquivos da lista do `netlify.toml`, então a raiz nunca é publicada por inteiro).
 - A pasta `fotos-originais/` (as fotos enviadas, antes da otimização) entra no `.gitignore`: só as versões otimizadas de `img/` vão para o repositório.
-- A pasta `dist/`, gerada pelo build do Netlify, também entra no `.gitignore`.
+- A pasta `dist/`, gerada pelo build do Netlify, também entra no `.gitignore`, assim como `node_modules/`. O `package-lock.json`, ao contrário, é versionado: o CI instala com `npm ci`, que exige o arquivo e instala exatamente o que ele lista (inclusive os binários do Biome para Linux, que o Ubuntu do CI precisa).
 
 ## Pontos em aberto
 
@@ -193,3 +225,6 @@ Carrinho, filtros e busca, painel de edição, pagamento online, frete por bairr
 - **Grafia:** o nome está como no cardápio ("Delicias da Cá", sem acento no "i"). Confirmar se é intencional.
 - **Fotos:** a foto de destaque do topo (`hero.webp`) já está no repositório e chegaram 10 das 18 fotos de bolos. Faltam 8: `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`. Cada foto nova precisa vir com o sabor identificado.
 - **Site no Netlify:** o site foi criado com o nome `delicias-da-ca` (https://delicias-da-ca.netlify.app/, plano gratuito), e as tags `og:url` e `og:image` do `index.html` usam esse endereço; se o nome mudar, as duas precisam do endereço novo, porque o WhatsApp busca a imagem da prévia pelo endereço escrito nelas. Falta testar a prévia do link enviando-o a si mesmo no WhatsApp (acrescentar `?v=2` ao link para repetir o teste).
+- **Primeira execução do CI:** o workflow não pôde ser executado offline. Depois do primeiro push, abrir a aba Actions do GitHub e conferir que o job `check` passa (o selo do README só mostra o estado depois de uma execução na `main`). As versões `v4` das actions (`actions/checkout` e `actions/setup-node`) são válidas, mas pode haver versões mais novas, que não deu para consultar sem rede; o Dependabot propõe a atualização.
+- **`NPM_FLAGS` no Netlify:** falta confirmar, no log do primeiro deploy, que o Netlify respeita o `NPM_FLAGS = "--omit=dev"` (nenhuma instalação do Biome deve aparecer).
+- **Proteger a `main`:** recomendação, não feita pelo repositório: exigir pull request e o job `check` antes do merge.
