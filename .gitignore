@@ -3,3 +3,4 @@ Screenshot *.png
 .DS_Store
 node_modules/
 fotos-originais/
+dist/
