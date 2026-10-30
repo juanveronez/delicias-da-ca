@@ -1,6 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { access, readFile } from 'node:fs/promises';
+import { test } from 'node:test';
 import { GENERAL_LINK } from '../js/whatsapp.js';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');

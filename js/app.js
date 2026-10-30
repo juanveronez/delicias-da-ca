@@ -1,4 +1,4 @@
-import { formatPrice, cakeLink } from './whatsapp.js';
+import { cakeLink, formatPrice } from './whatsapp.js';
 
 const MENU_URL = 'data/menu.json';
 const PHOTOS_DIR = 'img/';

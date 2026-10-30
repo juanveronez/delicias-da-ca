@@ -1,13 +1,13 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import {
-  WHATSAPP_NUMBER,
-  GENERAL_MESSAGE,
-  GENERAL_LINK,
-  formatPrice,
-  cakeMessage,
-  whatsappLink,
   cakeLink,
+  cakeMessage,
+  formatPrice,
+  GENERAL_LINK,
+  GENERAL_MESSAGE,
+  WHATSAPP_NUMBER,
+  whatsappLink,
 } from '../js/whatsapp.js';
 
 test('formatPrice shows reais with a comma and two decimals', () => {
@@ -22,10 +22,7 @@ test('formatPrice has no whitespace other than a plain space', () => {
 
 test('cakeMessage mentions the cake name and price', () => {
   const message = cakeMessage({ name: 'Cenoura vulcão', price: 50 });
-  assert.equal(
-    message,
-    'Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de Cenoura vulcão (R$ 50,00).',
-  );
+  assert.equal(message, 'Olá, Cá! Vim pelo cardápio online e quero encomendar o bolo de Cenoura vulcão (R$ 50,00).');
 });
 
 test('whatsappLink points to the number with country code and area code', () => {
@@ -50,9 +47,6 @@ test('cakeLink opens WhatsApp with the message for that cake', () => {
 });
 
 test('GENERAL_LINK uses the general message, without a cake name', () => {
-  assert.equal(
-    GENERAL_MESSAGE,
-    'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.',
-  );
+  assert.equal(GENERAL_MESSAGE, 'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.');
   assert.equal(new URL(GENERAL_LINK).searchParams.get('text'), GENERAL_MESSAGE);
 });

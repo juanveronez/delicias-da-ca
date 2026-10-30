@@ -1,7 +1,6 @@
 export const WHATSAPP_NUMBER = '5519996851415';
 
-export const GENERAL_MESSAGE =
-  'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.';
+export const GENERAL_MESSAGE = 'Olá, Cá! Vim pelo cardápio online e gostaria de fazer uma encomenda.';
 
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',

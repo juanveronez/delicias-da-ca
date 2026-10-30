@@ -1,13 +1,11 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
-import { MAX_BYTES, checkWebp } from '../scripts/photo-lib.mjs';
+import { test } from 'node:test';
+import { checkWebp, MAX_BYTES } from '../scripts/photo-lib.mjs';
 
 const HERO_FILE = 'hero.webp';
 
-const cakes = JSON.parse(
-  await readFile(new URL('../data/menu.json', import.meta.url), 'utf8'),
-);
+const cakes = JSON.parse(await readFile(new URL('../data/menu.json', import.meta.url), 'utf8'));
 const imgDir = new URL('../img/', import.meta.url);
 const present = (await readdir(imgDir).catch(() => [])).filter((name) => !name.startsWith('.'));
 const known = new Set([HERO_FILE, ...cakes.map((cake) => cake.photo)]);

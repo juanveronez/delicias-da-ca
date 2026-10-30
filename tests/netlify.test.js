@@ -1,10 +1,10 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 // Netlify publishes the folder named in netlify.toml, and the build command
@@ -24,13 +24,20 @@ const command = /^\s*command\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];
 const publish = /^\s*publish\s*=\s*"([^"\n]*)"/m.exec(toml)?.[1];
 
 // "cp -R <sources...> <destination>/": everything after cp -R, up to the end of the command.
-const copyArgs = /\bcp\s+-R\s+([^&;|]+)/.exec(command ?? '')?.[1].trim().split(/\s+/) ?? [];
+const copyArgs =
+  /\bcp\s+-R\s+([^&;|]+)/
+    .exec(command ?? '')?.[1]
+    .trim()
+    .split(/\s+/) ?? [];
 const destination = copyArgs.at(-1)?.replace(/\/+$/, '');
 const copied = copyArgs.slice(0, -1);
 
 // "./css/style.css?v=2" -> "css": the top-level entry of the repo that holds the path.
 function firstSegment(value) {
-  return value.split(/[?#]/)[0].replace(/^(?:\.?\/)+/, '').split('/')[0];
+  return value
+    .split(/[?#]/)[0]
+    .replace(/^(?:\.?\/)+/, '')
+    .split('/')[0];
 }
 
 const copiedSegments = new Set(copied.map(firstSegment));
@@ -50,7 +57,11 @@ test('netlify.toml publishes dist and the build command copies into that same fo
   assert.ok(publish, 'netlify.toml needs a [build] publish = "..."');
   assert.equal(publish, 'dist');
   assert.ok(copied.length > 0, `expected "cp -R <files> ${publish}/" in the build command, got: ${command}`);
-  assert.equal(destination, publish, `the build command copies into "${destination}", but netlify.toml publishes "${publish}"`);
+  assert.equal(
+    destination,
+    publish,
+    `the build command copies into "${destination}", but netlify.toml publishes "${publish}"`,
+  );
 });
 
 test('every path copied by the build command exists in the repo', () => {
@@ -91,7 +102,10 @@ test('the build command copies the files js/app.js fetches and the modules js/*.
       references.push({ from: `js/${script}`, path: path.posix.join('js', specifier) });
     }
   }
-  assert.ok(references.some(({ path: ref }) => ref.startsWith('js/')), 'expected js/app.js to import another module');
+  assert.ok(
+    references.some(({ path: ref }) => ref.startsWith('js/')),
+    'expected js/app.js to import another module',
+  );
   assertCovered(references, 'files used by the scripts');
 });
 
@@ -126,7 +140,9 @@ const skipBuild = !hasShell
     ? 'git is not available or this is not a Git checkout'
     : false;
 
-test('the build command, run on a copy of the repo, produces a dist/ with only the site', { skip: skipBuild }, async (t) => {
+test('the build command, run on a copy of the repo, produces a dist/ with only the site', {
+  skip: skipBuild,
+}, async (t) => {
   assert.ok(command && publish, 'netlify.toml needs a [build] command and publish');
   const cwd = await mkdtemp(path.join(tmpdir(), 'netlify-build-'));
   t.after(() => rm(cwd, { recursive: true, force: true }));

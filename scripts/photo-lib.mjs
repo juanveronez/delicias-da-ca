@@ -166,8 +166,7 @@ export function findContentBox(parsed, options = {}) {
   const contentHeight = rows.end - rows.start;
   const contentWidth = cols.end - cols.start;
   const untouched = contentHeight === height && contentWidth === width;
-  const tooSmall =
-    contentHeight < height * settings.minContentRatio || contentWidth < width * settings.minContentRatio;
+  const tooSmall = contentHeight < height * settings.minContentRatio || contentWidth < width * settings.minContentRatio;
   if (untouched || tooSmall) return fullImage;
 
   return { top, left, width: contentWidth, height: contentHeight, cropped: true };
@@ -237,7 +236,9 @@ function readWebpChunks(bytes) {
     result.tags.push(tag);
     if (dataEnd > limit) {
       if (!truncated) {
-        result.problems.push(`chunk "${tag}" is truncated: it declares ${size} bytes but only ${limit - offset - CHUNK_HEADER_BYTES} remain`);
+        result.problems.push(
+          `chunk "${tag}" is truncated: it declares ${size} bytes but only ${limit - offset - CHUNK_HEADER_BYTES} remain`,
+        );
       }
       break;
     }

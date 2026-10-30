@@ -12,15 +12,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  HERO_ID,
-  MAX_SIDE,
-  SOURCE_EXTENSIONS,
-  WEBP_QUALITY,
   checkWebp,
   findContentBox,
+  HERO_ID,
   imageIdFromFileName,
+  MAX_SIDE,
   needsResize,
   parseBmp,
+  SOURCE_EXTENSIONS,
+  WEBP_QUALITY,
 } from './photo-lib.mjs';
 
 const USAGE = 'Usage: node scripts/prepare-photos.mjs [sourceDir] [--out <dir>] [--dry-run] [--no-crop[=<id>,<id>...]]';
@@ -40,7 +40,13 @@ const REMINDER = 'Open each output and check flavor, rotation and crop before co
 // --- command line and external tools -------------------------------------------------
 
 function parseArgs(args) {
-  const options = { sourceDir: 'fotos-originais', outDir: 'img', dryRun: false, noCropAll: false, noCropIds: new Set() };
+  const options = {
+    sourceDir: 'fotos-originais',
+    outDir: 'img',
+    dryRun: false,
+    noCropAll: false,
+    noCropIds: new Set(),
+  };
   let sawSourceDir = false;
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
@@ -53,8 +59,12 @@ function parseArgs(args) {
     } else if (arg === '--no-crop') {
       options.noCropAll = true;
     } else if (arg.startsWith('--no-crop=')) {
-      const ids = arg.slice('--no-crop='.length).split(',').map((id) => id.trim());
-      if (ids.some((id) => id === '')) return { error: '--no-crop= needs one or more ids, for example --no-crop=banana,hero' };
+      const ids = arg
+        .slice('--no-crop='.length)
+        .split(',')
+        .map((id) => id.trim());
+      if (ids.some((id) => id === ''))
+        return { error: '--no-crop= needs one or more ids, for example --no-crop=banana,hero' };
       for (const id of ids) options.noCropIds.add(id);
     } else if (arg === '--help' || arg === '-h') {
       return { help: true };
@@ -177,7 +187,9 @@ function planPhoto(photo, workDir, options) {
   const parsed = parseBmp(fs.readFileSync(base));
 
   const skipCrop = options.noCropAll || options.noCropIds.has(photo.id);
-  const box = skipCrop ? { top: 0, left: 0, width: parsed.width, height: parsed.height, cropped: false } : findContentBox(parsed);
+  const box = skipCrop
+    ? { top: 0, left: 0, width: parsed.width, height: parsed.height, cropped: false }
+    : findContentBox(parsed);
   const maxSide = photo.id === HERO_ID ? MAX_SIDE.hero : MAX_SIDE.cake;
   const resize = needsResize(box.width, box.height, maxSide);
   return { base, source: { width: parsed.width, height: parsed.height }, box, skipCrop, maxSide, resize };
@@ -193,6 +205,7 @@ function renderPhoto(plan, workDir) {
     // (the whole image comes back). Padding 1px on every side first and cropping at offset
     // +1 keeps the rectangle away from both cases, and gives exactly the same pixels.
     const padded = path.join(workDir, 'padded.png');
+    // biome-ignore format: the arguments are grouped by sips option, one group per line
     run('sips', [
       '-s', 'format', 'png',
       '--padToHeightWidth', String(plan.source.height + 2), String(plan.source.width + 2),
@@ -202,6 +215,7 @@ function renderPhoto(plan, workDir) {
     // Crop straight into a PNG: a JPEG here would recompress the photo.
     const cropped = path.join(workDir, 'cropped.png');
     // sips offsets are (row, column) from the top-left corner.
+    // biome-ignore format: the arguments are grouped by sips option, one group per line
     run('sips', [
       '-s', 'format', 'png',
       '--cropToHeightWidth', String(plan.box.height), String(plan.box.width),
@@ -261,21 +275,36 @@ function processPhoto(photo, options, tempRoot) {
     const rendered = renderPhoto(plan, workDir);
 
     if (options.dryRun) {
-      const cropText = plan.box.cropped
-        ? `top ${plan.box.top}, left ${plan.box.left}, ${sizeText(plan.box)}`
-        : 'none';
-      const steps = [plan.box.cropped ? 'crop' : cropSkippedNote(plan), plan.resize ? 'resize' : 'keep size', existed ? 'would replace existing' : null];
-      return { failed: false, cells: [photo.id, sourceText, cropText, sizeText(rendered.size), steps.filter(Boolean).join(', ')] };
+      const cropText = plan.box.cropped ? `top ${plan.box.top}, left ${plan.box.left}, ${sizeText(plan.box)}` : 'none';
+      const steps = [
+        plan.box.cropped ? 'crop' : cropSkippedNote(plan),
+        plan.resize ? 'resize' : 'keep size',
+        existed ? 'would replace existing' : null,
+      ];
+      return {
+        failed: false,
+        cells: [photo.id, sourceText, cropText, sizeText(rendered.size), steps.filter(Boolean).join(', ')],
+      };
     }
 
     // The new file only reaches the output folder once it passed the checks, so a bad
     // conversion never destroys an output that was already good.
     const converted = encodePhoto(photo, rendered, workDir);
     writeAtomically(converted.webp, destination);
-    const notes = [plan.box.cropped ? 'cropped bars' : cropSkippedNote(plan), plan.resize ? 'resized' : 'kept size', existed ? 'replaced existing' : null];
+    const notes = [
+      plan.box.cropped ? 'cropped bars' : cropSkippedNote(plan),
+      plan.resize ? 'resized' : 'kept size',
+      existed ? 'replaced existing' : null,
+    ];
     return {
       failed: false,
-      cells: [photo.id, sourceText, sizeText(converted.final), (converted.bytes / 1024).toFixed(1), notes.filter(Boolean).join(', ')],
+      cells: [
+        photo.id,
+        sourceText,
+        sizeText(converted.final),
+        (converted.bytes / 1024).toFixed(1),
+        notes.filter(Boolean).join(', '),
+      ],
     };
   } catch (error) {
     return { failed: true, cells: [photo.id, sourceText, '-', '-', `FAILED: ${describeError(error)}`] };
@@ -286,8 +315,7 @@ function processPhoto(photo, options, tempRoot) {
 
 function formatTable(headers, rows) {
   const widths = headers.map((header, i) => Math.max(header.length, ...rows.map((row) => row[i].length)));
-  const line = (cells) =>
-    cells.map((cell, i) => (i === cells.length - 1 ? cell : cell.padEnd(widths[i]))).join('  ');
+  const line = (cells) => cells.map((cell, i) => (i === cells.length - 1 ? cell : cell.padEnd(widths[i]))).join('  ');
   return [line(headers), ...rows.map(line)].join('\n');
 }
 

@@ -1,16 +1,16 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { test } from 'node:test';
 import {
+  checkWebp,
+  findContentBox,
+  HERO_ID,
+  imageIdFromFileName,
   MAX_BYTES,
   MAX_SIDE,
-  WEBP_QUALITY,
-  SOURCE_EXTENSIONS,
-  HERO_ID,
   needsResize,
   parseBmp,
-  findContentBox,
-  imageIdFromFileName,
-  checkWebp,
+  SOURCE_EXTENSIONS,
+  WEBP_QUALITY,
   webpChunkTags,
 } from '../scripts/photo-lib.mjs';
 
@@ -186,7 +186,11 @@ test('parseBmp reads a 32-bit BMP and ignores the alpha channel', () => {
 });
 
 test('parseBmp weights the channels as 0.299 R + 0.587 G + 0.114 B', () => {
-  const colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255]];
+  const colors = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+  ];
   const parsed = parseBmp(buildBmp({ width: 3, height: 1, pixel: (x) => colors[x] }));
   assertClose(parsed.colMeans[0], 0.299 * 255, 'red');
   assertClose(parsed.colMeans[1], 0.587 * 255, 'green');
@@ -365,7 +369,14 @@ test('findContentBox returns the full box for an all-dark image', () => {
 
 test('findContentBox returns the full box when what is left is smaller than minContentRatio', () => {
   // 100 rows with only 10 bright ones in the middle: 10% of the height.
-  const parsed = statsFor({ width: 100, height: 100, rowSpans: [[0, 44, DARK], [55, 99, DARK]] });
+  const parsed = statsFor({
+    width: 100,
+    height: 100,
+    rowSpans: [
+      [0, 44, DARK],
+      [55, 99, DARK],
+    ],
+  });
   assert.deepEqual(findContentBox(parsed), FULL(100, 100));
   // The same strip passes when the caller accepts a smaller share and a smaller margin.
   const lenient = findContentBox(parsed, { minContentRatio: 0.05, margin: 1 });
@@ -374,12 +385,26 @@ test('findContentBox returns the full box when what is left is smaller than minC
 
 test('findContentBox also checks minContentRatio on the dimension that was not trimmed', () => {
   // Rows are fine, but the columns leave only 10 of 100 bright columns.
-  const parsed = statsFor({ width: 100, height: 100, colSpans: [[0, 44, DARK], [55, 99, DARK]] });
+  const parsed = statsFor({
+    width: 100,
+    height: 100,
+    colSpans: [
+      [0, 44, DARK],
+      [55, 99, DARK],
+    ],
+  });
   assert.deepEqual(findContentBox(parsed), FULL(100, 100));
 });
 
 test('findContentBox crops pillarbox bars on the columns', () => {
-  const parsed = statsFor({ width: 600, height: 400, colSpans: [[0, 99, DARK], [500, 599, DARK]] });
+  const parsed = statsFor({
+    width: 600,
+    height: 400,
+    colSpans: [
+      [0, 99, DARK],
+      [500, 599, DARK],
+    ],
+  });
   // First bright column 100 -> left 104; last bright column 499 -> end (exclusive) 496.
   assert.deepEqual(findContentBox(parsed), { top: 0, left: 104, width: 392, height: 400, cropped: true });
 });
@@ -399,8 +424,14 @@ test('findContentBox crops letterbox and pillarbox bars together', () => {
   const parsed = statsFor({
     width: 600,
     height: 400,
-    rowSpans: [[0, 29, DARK], [370, 399, DARK]],
-    colSpans: [[0, 49, DARK], [550, 599, DARK]],
+    rowSpans: [
+      [0, 29, DARK],
+      [370, 399, DARK],
+    ],
+    colSpans: [
+      [0, 49, DARK],
+      [550, 599, DARK],
+    ],
   });
   // Rows: first bright 30 -> top 34, last bright 369 -> end 366. Columns: 50 -> 54, 549 -> end 546.
   assert.deepEqual(findContentBox(parsed), { top: 34, left: 54, width: 492, height: 332, cropped: true });
@@ -417,9 +448,21 @@ test('findContentBox accepts partial options and keeps the other defaults', () =
       [835, 1157, DARK],
     ],
   });
-  assert.deepEqual(findContentBox(reference, { margin: 0 }), { top: 323, left: 0, width: 540, height: 512, cropped: true });
+  assert.deepEqual(findContentBox(reference, { margin: 0 }), {
+    top: 323,
+    left: 0,
+    width: 540,
+    height: 512,
+    cropped: true,
+  });
   assert.deepEqual(findContentBox(reference, { minBar: 400 }), FULL(540, 1158));
-  assert.deepEqual(findContentBox(reference, { margin: 10 }), { top: 333, left: 0, width: 540, height: 492, cropped: true });
+  assert.deepEqual(findContentBox(reference, { margin: 10 }), {
+    top: 333,
+    left: 0,
+    width: 540,
+    height: 492,
+    cropped: true,
+  });
 });
 
 // ---------------------------------------------------------------------------

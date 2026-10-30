@@ -1,11 +1,11 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomFillSync } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
-import { mkdtemp, mkdir, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 import { checkWebp, findContentBox, parseBmp } from '../scripts/photo-lib.mjs';
@@ -92,6 +92,7 @@ function photoWithBars(width, height, { top = 0, bottom = 0, left = 0, right = 0
 // Rewrites a JPEG written by sips so that its only Exif entry is Orientation = `orientation`
 // (6 means: rotate 90 degrees clockwise to display it upright).
 function withExifOrientation(jpeg, orientation) {
+  // biome-ignore format: the bytes are grouped as in the TIFF layout, one comment per group
   const tiff = Buffer.from([
     0x4d, 0x4d, 0x00, 0x2a, 0x00, 0x00, 0x00, 0x08, // big-endian header, first IFD at offset 8
     0x00, 0x01, // one entry
@@ -99,7 +100,10 @@ function withExifOrientation(jpeg, orientation) {
     0x00, 0x00, 0x00, 0x00, // no next IFD
   ]);
   const payload = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), tiff]);
-  const exifSegment = Buffer.concat([Buffer.from([0xff, 0xe1, (payload.length + 2) >> 8, (payload.length + 2) & 0xff]), payload]);
+  const exifSegment = Buffer.concat([
+    Buffer.from([0xff, 0xe1, (payload.length + 2) >> 8, (payload.length + 2) & 0xff]),
+    payload,
+  ]);
   const kept = [jpeg.subarray(0, 2)]; // start of image
   let position = 2;
   while (jpeg[position] === 0xff && jpeg[position + 1] !== 0xda) {
@@ -149,7 +153,9 @@ const listDir = async (dir) => (existsSync(dir) ? (await readdir(dir)).sort() : 
 
 // --- tests that run the whole pipeline ------------------------------------------
 
-test('converts photos: crops black bars, shrinks only when too large, never enlarges', { skip: missingTool }, async (t) => {
+test('converts photos: crops black bars, shrinks only when too large, never enlarges', {
+  skip: missingTool,
+}, async (t) => {
   const { root, sources } = await makeWorkspace(t);
   const files = {
     'banana.png': photoWithBars(600, 1000, { top: 250, bottom: 250 }), // bars on top and bottom, smaller than 800
@@ -196,7 +202,9 @@ test('converts photos: crops black bars, shrinks only when too large, never enla
   }
 });
 
-test('crops a bar on a single side at the exact place, even where sips itself gets it wrong', { skip: missingTool }, async (t) => {
+test('crops a bar on a single side at the exact place, even where sips itself gets it wrong', {
+  skip: missingTool,
+}, async (t) => {
   // sips center-crops when the offset is (0, 0) and ignores a crop whose rectangle starts at
   // the image's bottom-left corner, so a bar on one side only is the hard case: a bar at the
   // bottom or on the right leaves the box at (0, 0), and a bar on top leaves it at the corner.
@@ -214,7 +222,8 @@ test('crops a bar on a single side at the exact place, even where sips itself ge
   const result = runCli([sources, '--out', out]);
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
 
-  const close = (actual, expected, label) => assert.ok(Math.abs(actual - expected) < 6, `${label}: ${actual} vs ${expected}`);
+  const close = (actual, expected, label) =>
+    assert.ok(Math.abs(actual - expected) < 6, `${label}: ${actual} vs ${expected}`);
   for (const { id, box } of cases) {
     const output = path.join(out, `${id}.webp`);
     assert.equal(dimensionsOf(output), `${box.width}x${box.height}`, id);
@@ -223,7 +232,10 @@ test('crops a bar on a single side at the exact place, even where sips itself ge
 
     // Compare the edges with the picture the box should hold, drawn straight from the formula.
     const expectedFile = path.join(root, `expected-${id}.png`);
-    await writeFile(expectedFile, makePng(box.width, box.height, (x, y) => brightPhoto(x + box.left, y + box.top)));
+    await writeFile(
+      expectedFile,
+      makePng(box.width, box.height, (x, y) => brightPhoto(x + box.left, y + box.top)),
+    );
     const want = pixelStats(expectedFile, root);
     for (const [label, actual, expected] of [
       ['first row', got.rowMeans[0], want.rowMeans[0]],
@@ -241,7 +253,10 @@ test('applies the EXIF rotation of a phone photo instead of losing it', { skip: 
   // 400x200, dark left half and bright right half, stored sideways with Orientation = 6.
   const pngFile = path.join(root, 'sideways.png');
   const jpegFile = path.join(root, 'sideways.jpg');
-  await writeFile(pngFile, makePng(400, 200, (x) => (x < 200 ? [90, 90, 90] : [200, 200, 200])));
+  await writeFile(
+    pngFile,
+    makePng(400, 200, (x) => (x < 200 ? [90, 90, 90] : [200, 200, 200])),
+  );
   execFileSync('sips', ['-s', 'format', 'jpeg', pngFile, '--out', jpegFile], { stdio: 'ignore' });
   await writeFile(path.join(sources, 'banana.jpg'), withExifOrientation(await readFile(jpegFile), 6));
 
@@ -266,7 +281,9 @@ test('overwrites an existing output and says so', { skip: missingTool }, async (
   assert.deepEqual(checkWebp(await readFile(path.join(out, 'banana.webp'))), []);
 });
 
-test('replaces an existing output in one step and leaves no temporary file behind', { skip: missingTool }, async (t) => {
+test('replaces an existing output in one step and leaves no temporary file behind', {
+  skip: missingTool,
+}, async (t) => {
   const { sources, out } = await makeWorkspace(t);
   await writeFile(path.join(sources, 'banana.png'), flatPhoto(300, 200));
   await writeFile(path.join(sources, 'limao.png'), flatPhoto(300, 200));
@@ -292,7 +309,11 @@ test('replaces a symlink in the output folder instead of writing through it', { 
   const { status, stdout, stderr } = runCli([sources, '--out', out]);
   assert.equal(status, 0, `${stdout}\n${stderr}`);
   assert.match(stdout, /^banana\s.*replaced existing$/m);
-  assert.equal(lstatSync(path.join(out, 'banana.webp')).isSymbolicLink(), false, 'the link was replaced by a regular file');
+  assert.equal(
+    lstatSync(path.join(out, 'banana.webp')).isSymbolicLink(),
+    false,
+    'the link was replaced by a regular file',
+  );
   assert.deepEqual(checkWebp(await readFile(path.join(out, 'banana.webp'))), []);
   assert.equal(await readFile(elsewhere, 'utf8'), 'precious: must stay untouched', 'the link target was not written');
   assert.deepEqual(await listDir(out), ['banana.webp']);
@@ -343,7 +364,9 @@ test('--no-crop=<id> skips the crop only for the listed ids', { skip: missingToo
   assert.match(stdout, /^cenoura\s.*cropped bars/m);
 });
 
-test('--no-crop rejects ids that are not among the sources of this run and writes nothing', { skip: missingTool }, async (t) => {
+test('--no-crop rejects ids that are not among the sources of this run and writes nothing', {
+  skip: missingTool,
+}, async (t) => {
   const { sources, out } = await makeWorkspace(t);
   await writeFile(path.join(sources, 'banana.png'), flatPhoto(200, 100));
 
@@ -361,7 +384,9 @@ test('--no-crop rejects ids that are not among the sources of this run and write
   }
 });
 
-test('a cake on a near-black backdrop is cropped by default and kept whole with --no-crop', { skip: missingTool }, async (t) => {
+test('a cake on a near-black backdrop is cropped by default and kept whole with --no-crop', {
+  skip: missingTool,
+}, async (t) => {
   // The backdrop rows are indistinguishable from bars, which is what --no-crop is for.
   const { sources, out } = await makeWorkspace(t);
   await writeFile(path.join(sources, 'banana.png'), cakeOnDarkBackdrop(400, 300));
@@ -387,7 +412,9 @@ test('recognizes source names regardless of case and extension', { skip: missing
   assert.deepEqual(await listDir(out), ['banana.webp']);
 });
 
-test('reports names that are not a cake id or hero as skipped and does not convert them', { skip: missingTool }, async (t) => {
+test('reports names that are not a cake id or hero as skipped and does not convert them', {
+  skip: missingTool,
+}, async (t) => {
   const { sources, out } = await makeWorkspace(t);
   await writeFile(path.join(sources, 'banana.png'), flatPhoto(200, 100));
   await writeFile(path.join(sources, 'IMG_1.png'), flatPhoto(200, 100));
@@ -458,7 +485,9 @@ test('marks an unreadable photo as failed, keeps going and exits 1', { skip: mis
   assert.deepEqual(await listDir(out), ['limao.webp']);
 });
 
-test('explains an empty source file without exposing temporary paths, and converts the others', { skip: missingTool }, async (t) => {
+test('explains an empty source file without exposing temporary paths, and converts the others', {
+  skip: missingTool,
+}, async (t) => {
   const { sources, out } = await makeWorkspace(t);
   await writeFile(path.join(sources, 'banana.jpg'), '');
   await writeFile(path.join(sources, 'limao.png'), flatPhoto(200, 100));
@@ -467,7 +496,11 @@ test('explains an empty source file without exposing temporary paths, and conver
   assert.equal(status, 1);
   assert.match(stdout, /^banana\s.*FAILED: sips could not decode the file \(empty or corrupt\?\)$/m);
   const bananaRow = stdout.split('\n').find((line) => line.startsWith('banana'));
-  assert.doesNotMatch(`${bananaRow}\n${stderr}`, /ENOENT|\.bmp|\/(var|tmp|private)\//i, 'no temporary path in the message');
+  assert.doesNotMatch(
+    `${bananaRow}\n${stderr}`,
+    /ENOENT|\.bmp|\/(var|tmp|private)\//i,
+    'no temporary path in the message',
+  );
   assert.match(stdout, /^limao\s.*kept size$/m);
   assert.deepEqual(await listDir(out), ['limao.webp']);
 });
@@ -476,7 +509,10 @@ test('fails a photo whose WebP is over 200 KB and keeps the previous output', { 
   const { sources, out } = await makeWorkspace(t);
   const noise = Buffer.alloc(700 * 700 * 3);
   randomFillSync(noise);
-  await writeFile(path.join(sources, 'banana.png'), makePng(700, 700, (x, y) => noise.subarray((y * 700 + x) * 3, (y * 700 + x) * 3 + 3)));
+  await writeFile(
+    path.join(sources, 'banana.png'),
+    makePng(700, 700, (x, y) => noise.subarray((y * 700 + x) * 3, (y * 700 + x) * 3 + 3)),
+  );
   await mkdir(out);
   await writeFile(path.join(out, 'banana.webp'), 'previous good output');
 
@@ -509,7 +545,12 @@ test('exits 2 when the source folder does not exist', { skip: missingTool }, asy
 
 test('exits 2 with a usage message for unknown options and missing values', async (t) => {
   const { sources } = await makeWorkspace(t);
-  for (const args of [[sources, '--bogus'], [sources, '--out'], [sources, 'second-folder'], [sources, '--no-crop=']]) {
+  for (const args of [
+    [sources, '--bogus'],
+    [sources, '--out'],
+    [sources, 'second-folder'],
+    [sources, '--no-crop='],
+  ]) {
     const { status, stderr } = runCli(args);
     assert.equal(status, 2, args.join(' '));
     assert.match(stderr, /Usage: node scripts\/prepare-photos\.mjs/, args.join(' '));
@@ -519,7 +560,8 @@ test('exits 2 with a usage message for unknown options and missing values', asyn
 test('--help describes every option and exits 0', () => {
   const { status, stdout } = runCli(['--help']);
   assert.equal(status, 0);
-  for (const option of ['--out', '--dry-run', '--no-crop']) assert.ok(stdout.includes(option), `--help should mention ${option}`);
+  for (const option of ['--out', '--dry-run', '--no-crop'])
+    assert.ok(stdout.includes(option), `--help should mention ${option}`);
 });
 
 test('exits 2 and says the tool needs macOS when sips is missing', async (t) => {
@@ -532,7 +574,9 @@ test('exits 2 and says the tool needs macOS when sips is missing', async (t) => 
   assert.match(stderr, /sips/);
 });
 
-test('exits 2 with the install hint when cwebp is missing', { skip: !toolWorks('sips', ['--help']) && 'sips is not available' }, async (t) => {
+test('exits 2 with the install hint when cwebp is missing', {
+  skip: !toolWorks('sips', ['--help']) && 'sips is not available',
+}, async (t) => {
   const { root, sources } = await makeWorkspace(t);
   const onlySips = path.join(root, 'only-sips');
   await mkdir(onlySips);
