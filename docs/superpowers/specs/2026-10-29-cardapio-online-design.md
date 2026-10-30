@@ -96,7 +96,7 @@ Os preços vêm da imagem do cardápio atual.
 
 ```
 index.html
-favicon.svg                → ícone da aba: um cupcake desenhado em SVG
+favicon.svg                → ícone da aba: um bolo de forma desenhado em SVG
 css/style.css
 data/menu.json
 js/whatsapp.js             → funções puras: montar o link e formatar o preço

@@ -29,7 +29,7 @@
 | `data/menu.json` | Os 18 bolos, na ordem de exibição. Só dados. |
 | `index.html` | Estrutura da página, textos fixos, meta tags, botão geral e aviso de erro. |
 | `css/style.css` | Estilo A (rústico artesanal), mobile first. |
-| `favicon.svg` | Ícone da aba do navegador: um cupcake desenhado em SVG (sem arquivos externos). |
+| `favicon.svg` | Ícone da aba do navegador: um bolo de forma (com furo no meio e cobertura escorrendo) desenhado em SVG (sem arquivos externos). |
 | `js/app.js` | Busca o JSON, monta os cards, trata erro. Usa o DOM. |
 | `tests/whatsapp.test.js` | Testa `js/whatsapp.js`. |
 | `tests/menu.test.js` | Valida `data/menu.json`. |
@@ -494,40 +494,31 @@ O endereço do WhatsApp aparece como `https://wa.me/5519996851415?text=Ol%C3%A1%
 </html>
 ```
 
-Criar `favicon.svg` (um cupcake desenhado em SVG, sem arquivos externos nem licença a respeitar; o teste do `<link rel="icon">` confere que o arquivo existe):
+Criar `favicon.svg` (um bolo de forma com cobertura escorrendo, sobre um pratinho, desenhado em SVG, sem arquivos externos nem licença a respeitar; o teste do `<link rel="icon">` confere que o arquivo existe):
 
 ```svg
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <g stroke="#4a2c1a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
-    <!-- frosting tiers, bottom to top -->
-    <rect x="9" y="26" width="46" height="14" rx="7" fill="#f7a6bf"/>
-    <rect x="15" y="17" width="34" height="13" rx="6.5" fill="#fab6ca"/>
-    <rect x="22" y="9" width="20" height="12" rx="6" fill="#fdc9d8"/>
-    <!-- cherry -->
-    <circle cx="32" cy="7" r="4.5" fill="#d62f4b"/>
-    <!-- liner -->
-    <path d="M14 36h36l-4.2 20.2a3 3 0 0 1-2.9 2.3H21.1a3 3 0 0 1-2.9-2.3z" fill="#e8b36a"/>
+  <!-- Homemade ring cake ("bolo de forma") with dripping glaze on a plate -->
+  <g stroke="#4a2c1a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
+    <!-- plate and its rim -->
+    <ellipse cx="32" cy="50" rx="30" ry="9" fill="#f4f1ea"/>
+    <ellipse cx="32" cy="49" rx="24" ry="6" fill="none" stroke="#d6cab8" stroke-width="1.5"/>
+    <!-- cake body, darker crust at the base, outline -->
+    <path d="M8 21 L9 44 C9 53 55 53 55 44 L56 21 Z" fill="#d9a35f" stroke="none"/>
+    <path d="M9 44 C9 53 55 53 55 44 C55 48.5 9 48.5 9 44 Z" fill="#a8683a" stroke="none"/>
+    <path d="M8 21 L9 44 C9 53 55 53 55 44 L56 21" fill="none"/>
+    <!-- glaze over the top, dripping down the front -->
+    <path d="M7.5 21 C7.5 5 56.5 5 56.5 21 L56.5 25 Q55.5 28 53 29.5 L53 36 C53 40 47.5 40 47.5 36 L47.5 31.6 Q43.5 32.8 40 33.2 L40 42 C40 46 34 46 34 42 L34 33.6 Q29 33.6 25.5 33.2 L25.5 38.5 C25.5 42.5 20 42.5 20 38.5 L20 32.4 Q16.5 31.5 14.5 30.6 L14.5 34 C14.5 37.5 9.5 37.5 9.5 34 L9.5 28.5 Q7.7 27 7.5 25 Z" fill="#fff3dc"/>
+    <!-- centre hole: inner crumb wall and dark opening -->
+    <ellipse cx="32" cy="17" rx="9" ry="3.8" fill="#a8683a"/>
+    <ellipse cx="32" cy="18.3" rx="7" ry="2.5" fill="#4a2c1a" stroke="none"/>
+    <!-- glaze shine -->
+    <path d="M14.5 18 Q16.5 13.5 21.5 11.8" fill="none" stroke="#fff" stroke-width="2"/>
   </g>
-  <!-- liner pleats -->
-  <g stroke="#c98b4a" stroke-width="2" stroke-linecap="round">
-    <path d="M23 40.5l1.2 14.5M32 40.5v14.5M41 40.5l-1.2 14.5"/>
+  <!-- lime zest -->
+  <g fill="#7fb236">
+    <circle cx="19" cy="22" r="1.1"/><circle cx="44" cy="23.5" r="1.1"/><circle cx="39" cy="12.3" r="1.1"/><circle cx="27" cy="25.5" r="1.1"/><circle cx="50" cy="16.5" r="1.1"/>
   </g>
-  <!-- sprinkles -->
-  <g stroke-width="2.2" stroke-linecap="round">
-    <path d="M18 32l2-1.2" stroke="#fff"/>
-    <path d="M30 31.5l2.4 1" stroke="#f2c14e"/>
-    <path d="M44 31l-2.2 1.2" stroke="#fff"/>
-    <path d="M26 22.5l2-1" stroke="#f2c14e"/>
-    <path d="M38 23l-2.2-.6" stroke="#fff"/>
-  </g>
-  <!-- cherry shine -->
-  <circle cx="30.4" cy="5.4" r="1.3" fill="#fff"/>
-  <!-- face -->
-  <circle cx="26" cy="46" r="2" fill="#4a2c1a"/>
-  <circle cx="38" cy="46" r="2" fill="#4a2c1a"/>
-  <path d="M29.5 49.5q2.5 2.6 5 0" fill="none" stroke="#4a2c1a" stroke-width="1.8" stroke-linecap="round"/>
-  <circle cx="22" cy="49" r="2.2" fill="#f08aa5" opacity=".7"/>
-  <circle cx="42" cy="49" r="2.2" fill="#f08aa5" opacity=".7"/>
 </svg>
 ```
 
