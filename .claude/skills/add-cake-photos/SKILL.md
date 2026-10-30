@@ -1,6 +1,6 @@
 ---
 name: add-cake-photos
-description: Use when the user adds, replaces or mentions new cake photos or the hero photo for the Delicias da Cá site - image files dropped in the project root or in fotos-originais/, "coloca as fotos no site", JPEG/PNG/HEIC that must become WebP, or a cake card that still has no photo.
+description: Use when the user adds, replaces or mentions new cake photos or the hero photo for the Delícias da Cá site - image files dropped in the project root or in fotos-originais/, "coloca as fotos no site", JPEG/PNG/HEIC that must become WebP, or a cake card that still has no photo.
 ---
 
 # Adding cake photos

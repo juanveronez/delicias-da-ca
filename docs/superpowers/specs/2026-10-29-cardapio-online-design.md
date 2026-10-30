@@ -1,17 +1,17 @@
-# Cardápio online Delicias da Cá — Design
+# Cardápio online Delícias da Cá — Design
 
 Data: 2026-10-29
 
 ## Objetivo
 
-Um cardápio online para a Delicias da Cá vender bolos caseiros em Campinas/SP, com entrega. O site não processa pedido nem pagamento: ele serve de vitrine e leva o cliente ao WhatsApp, onde a venda é fechada. Cada bolo tem um botão que abre a conversa com a mensagem já escrita.
+Um cardápio online para a Delícias da Cá vender bolos caseiros em Campinas/SP, com entrega. O site não processa pedido nem pagamento: ele serve de vitrine e leva o cliente ao WhatsApp, onde a venda é fechada. Cada bolo tem um botão que abre a conversa com a mensagem já escrita.
 
 ## Negócio
 
 - Bolos caseiros, vendidos e entregues em Campinas/SP.
 - Contato e pedidos: WhatsApp (19) 99685-1415 (`5519996851415` no link).
 - Entrega: a taxa e a região são combinadas na conversa, então o site não mostra valores de frete.
-- Horários (lidos da imagem do cardápio, texto cortado no fim):
+- Horários (da imagem do cardápio, confirmados pelo dono):
   - Segunda a quarta: encomendas somente no período da manhã.
   - Quinta a domingo: pronta entrega, encomendas e entregas o dia todo.
 
@@ -22,6 +22,7 @@ Um cardápio online para a Delicias da Cá vender bolos caseiros em Campinas/SP,
 | Fluxo de pedido | Botão "Pedir pelo WhatsApp" em cada bolo. Sem carrinho. Mais um botão geral no topo. |
 | Fotos | Há uma foto por bolo. O cardápio é uma lista de cards com foto. |
 | Entrega | Taxa combinada no WhatsApp. |
+| Grafia | O nome da marca é escrito **Delícias da Cá**, com acento. O endereço do site, o nome do repositório e os `id` dos bolos ficam sem acento. |
 | Estilo | **A · Rústico artesanal**: papel creme, marrom e verde, tipografia manuscrita. Segue a identidade do cardápio atual. |
 | Manutenção | Quem edita o cardápio é o desenvolvedor, num arquivo JSON. Não há painel nem login. |
 | Tecnologia | HTML, CSS e JavaScript puros, sem build e sem framework. A página não tem dependência de execução: nenhum pacote npm vai ao ar. |
@@ -41,11 +42,11 @@ Um cardápio online para a Delicias da Cá vender bolos caseiros em Campinas/SP,
 
 Uma coluna no celular, que é o uso principal. Em telas maiores o cardápio passa para 2 ou 3 colunas.
 
-1. **Topo:** "Delicias da Cá", a frase "Bolos caseiros, feitos com carinho", a foto dos bolos em destaque e o botão "Fazer encomenda no WhatsApp".
+1. **Topo:** "Delícias da Cá", a frase "Bolos caseiros, feitos com carinho", a foto dos bolos em destaque e o botão "Fazer encomenda no WhatsApp".
 2. **Avisos:** entrega em Campinas com taxa combinada no WhatsApp, e os horários de encomenda.
 3. **Cardápio:** os 18 sabores em cards. Cada card tem foto, nome, preço e o botão "Pedir pelo WhatsApp". Mesma ordem do cardápio atual, sem filtros nem abas.
 4. **Como pedir:** três passos. Escolha o bolo, toque em "Pedir pelo WhatsApp", combine data, horário e entrega com a Cá.
-5. **Rodapé:** Delicias da Cá, Campinas/SP, e o WhatsApp (19) 99685-1415.
+5. **Rodapé:** Delícias da Cá, Campinas/SP, e o WhatsApp (19) 99685-1415.
 
 ## Cardápio inicial
 
@@ -221,8 +222,6 @@ Carrinho, filtros e busca, painel de edição, pagamento online, frete por bairr
 
 ## Pontos em aberto
 
-- **Horários:** a imagem original está cortada no fim. A leitura acima precisa de confirmação da Cá.
-- **Grafia:** o nome está como no cardápio ("Delicias da Cá", sem acento no "i"). Confirmar se é intencional.
 - **Fotos:** a foto de destaque do topo (`hero.webp`) já está no repositório e chegaram 10 das 18 fotos de bolos. Faltam 8: `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`. Cada foto nova precisa vir com o sabor identificado.
 - **Site no Netlify:** o site foi criado com o nome `delicias-da-ca` (https://delicias-da-ca.netlify.app/, plano gratuito), e as tags `og:url` e `og:image` do `index.html` usam esse endereço; se o nome mudar, as duas precisam do endereço novo, porque o WhatsApp busca a imagem da prévia pelo endereço escrito nelas. Falta testar a prévia do link enviando-o a si mesmo no WhatsApp (acrescentar `?v=2` ao link para repetir o teste).
 - **Primeira execução do CI:** o workflow não pôde ser executado offline. Depois do primeiro push, abrir a aba Actions do GitHub e conferir que o job `check` passa (o selo do README só mostra o estado depois de uma execução na `main`). As versões `v4` das actions (`actions/checkout` e `actions/setup-node`) são válidas, mas pode haver versões mais novas, que não deu para consultar sem rede; o Dependabot propõe a atualização.

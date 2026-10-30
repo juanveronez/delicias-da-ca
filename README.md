@@ -4,7 +4,7 @@
   <img src="og-image.jpg" alt="Five homemade ring cakes lined up on a kitchen counter" width="720">
 </a>
 
-# Delicias da Cá
+# Delícias da Cá
 
 **A mobile-first online menu for homemade ring cakes in Campinas/SP, where every cake has an "order on WhatsApp" button.**
 
@@ -37,7 +37,7 @@
 
 ## 🍰 About
 
-Delicias da Cá sells homemade cakes, mostly *bolos de forma* (ring cakes), with delivery in Campinas/SP. This repository is its online menu: one page that shows the flavours, prices and photos and hands the customer over to WhatsApp, where the order is settled. There is no cart, checkout or payment on the site.
+Delícias da Cá sells homemade cakes, mostly *bolos de forma* (ring cakes), with delivery in Campinas/SP. This repository is its online menu: one page that shows the flavours, prices and photos and hands the customer over to WhatsApp, where the order is settled. There is no cart, checkout or payment on the site.
 
 It is plain HTML, CSS and JavaScript on purpose. The menu is a JSON file edited by a single person, so there is no build step, no framework to keep up to date and no runtime dependencies to break (the only dev dependency is the Biome linter). Changing a price means editing one line and pushing.
 
@@ -314,6 +314,7 @@ To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previe
 - Code, comments, test titles and messages, JSON keys, CSS classes and file names are in English.
 - Text that the site visitor sees (page copy, `alt` and `aria-label`, meta tags, the WhatsApp message and the cake names) is in Portuguese.
 - Deliberate exception: cake `id`s and the photo names derived from them follow the product name in Portuguese (`cenoura-vulcao`, `cenoura-vulcao.webp`).
+- The brand is written **Delícias da Cá**, with the accent, in everything the visitor reads. The repository, the site address and the cake ids stay ASCII (`delicias-da-ca`), because they are slugs.
 - Commit messages are in Portuguese.
 - Code style is enforced by Biome: `npm run lint:fix` fixes it, `npm run lint` (and CI) checks it. See [Code quality](#-code-quality).
 - The documents in [`docs/`](docs/superpowers) are in Portuguese. This README is in English because it is the project's page on GitHub.
@@ -321,4 +322,3 @@ To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previe
 ## 🧩 Known gaps
 
 - Photos are still missing for 8 of the 18 cakes (`cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` and `pacoca`). Their cards show a brown block. The current list is always printed by `npm test`.
-- The opening hours shown on the page and the spelling "Delicias" (without the accent) are waiting for the owner's confirmation.

@@ -1,8 +1,8 @@
-# Cardápio online Delicias da Cá — Plano de implementação
+# Cardápio online Delícias da Cá — Plano de implementação
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Publicar um site estático de cardápio de bolos caseiros em que cada bolo tem um botão que abre o WhatsApp da Delicias da Cá com a mensagem do pedido já escrita.
+**Goal:** Publicar um site estático de cardápio de bolos caseiros em que cada bolo tem um botão que abre o WhatsApp da Delícias da Cá com a mensagem do pedido já escrita.
 
 **Architecture:** Página única (`index.html`) em HTML, CSS e JavaScript puros, sem build. Os bolos vêm de `data/menu.json`; `js/app.js` busca o JSON e monta os cards com `textContent`. A lógica que não pode quebrar (link do WhatsApp e formatação de preço) fica em `js/whatsapp.js`, um módulo ES de funções puras, testado com o executor nativo do Node (`node --test`). Na publicação, o Netlify roda o comando do `netlify.toml`, que copia só os arquivos do site para `dist/` e publica essa pasta: o resto do repositório (`docs/`, `tests/`, `scripts/` etc.) não vai ao ar. A qualidade do código é conferida pelo Biome (lint, formatação e ordem dos imports) e, a cada push na `main` e a cada pull request, pelo GitHub Actions, que roda `npm run lint` e `npm test`; o deploy continua sendo só do Netlify (Task 10).
 
@@ -511,18 +511,18 @@ As tags de prévia do link (`og:url`, `og:image`, `og:image:width`, `og:image:he
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Delicias da Cá · Bolos caseiros em Campinas</title>
+  <title>Delícias da Cá · Bolos caseiros em Campinas</title>
   <meta name="description" content="Bolos caseiros em Campinas/SP, com entrega. Veja o cardápio e faça sua encomenda pelo WhatsApp.">
   <meta name="theme-color" content="#4a2c1a">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
-  <meta property="og:title" content="Delicias da Cá · Bolos caseiros em Campinas">
+  <meta property="og:title" content="Delícias da Cá · Bolos caseiros em Campinas">
   <meta property="og:description" content="Bolos caseiros com entrega em Campinas/SP. Veja o cardápio e peça pelo WhatsApp.">
   <meta property="og:url" content="https://delicias-da-ca.netlify.app/">
   <meta property="og:image" content="https://delicias-da-ca.netlify.app/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Cinco bolos caseiros da Delicias da Cá enfileirados sobre a bancada">
+  <meta property="og:image:alt" content="Cinco bolos caseiros da Delícias da Cá enfileirados sobre a bancada">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/app.js"></script>
@@ -530,10 +530,10 @@ As tags de prévia do link (`og:url`, `og:image`, `og:image:width`, `og:image:he
 <body>
   <header class="hero">
     <div class="container">
-      <h1 class="hero__brand">Delicias da Cá</h1>
+      <h1 class="hero__brand">Delícias da Cá</h1>
       <p class="hero__tagline">Bolos caseiros, feitos com carinho</p>
       <div class="hero__photo">
-        <img src="img/hero.webp" alt="Bolos caseiros da Delicias da Cá" onerror="this.remove()">
+        <img src="img/hero.webp" alt="Bolos caseiros da Delícias da Cá" onerror="this.remove()">
       </div>
       <a class="button button--large" href="https://wa.me/5519996851415?text=Ol%C3%A1%2C%20C%C3%A1!%20Vim%20pelo%20card%C3%A1pio%20online%20e%20gostaria%20de%20fazer%20uma%20encomenda." target="_blank" rel="noopener noreferrer">Fazer encomenda no WhatsApp</a>
     </div>
@@ -579,7 +579,7 @@ As tags de prévia do link (`og:url`, `og:image`, `og:image:width`, `og:image:he
 
   <footer class="site-footer">
     <div class="container">
-      <p>Delicias da Cá · Campinas/SP</p>
+      <p>Delícias da Cá · Campinas/SP</p>
       <p>WhatsApp: <a href="https://wa.me/5519996851415?text=Ol%C3%A1%2C%20C%C3%A1!%20Vim%20pelo%20card%C3%A1pio%20online%20e%20gostaria%20de%20fazer%20uma%20encomenda." target="_blank" rel="noopener noreferrer">(19) 99685-1415</a></p>
     </div>
   </footer>
@@ -1055,7 +1055,7 @@ No Chrome: DevTools (⌥⌘I) → ícone de dispositivo (⇧⌘M) → iPhone 12 
 O console do navegador vai mostrar erros 404 para `img/hero.webp`, `img/*.webp` e `favicon.ico`. Isso é esperado antes da Task 8: as fotos que faltam aparecem como os blocos marrons.
 
 Conferir:
-- [ ] O nome "Delicias da Cá" aparece em letra manuscrita, em cima do fundo creme.
+- [ ] O nome "Delícias da Cá" aparece em letra manuscrita, em cima do fundo creme.
 - [ ] O topo mostra um bloco marrom no lugar da foto (as fotos chegam na Task 8) e o botão verde "Fazer encomenda no WhatsApp".
 - [ ] Os avisos de entrega e horários aparecem.
 - [ ] Existem 18 cards, na ordem do cardápio original, cada um com bloco marrom, nome, preço e botão. Nenhum ícone de imagem quebrada.
@@ -1496,7 +1496,7 @@ Substituir o conteúdo atual por:
   <img src="og-image.jpg" alt="Five homemade ring cakes lined up on a kitchen counter" width="720">
 </a>
 
-# Delicias da Cá
+# Delícias da Cá
 
 **A mobile-first online menu for homemade ring cakes in Campinas/SP, where every cake has an "order on WhatsApp" button.**
 
@@ -1529,7 +1529,7 @@ Substituir o conteúdo atual por:
 
 ## 🍰 About
 
-Delicias da Cá sells homemade cakes, mostly *bolos de forma* (ring cakes), with delivery in Campinas/SP. This repository is its online menu: one page that shows the flavours, prices and photos and hands the customer over to WhatsApp, where the order is settled. There is no cart, checkout or payment on the site.
+Delícias da Cá sells homemade cakes, mostly *bolos de forma* (ring cakes), with delivery in Campinas/SP. This repository is its online menu: one page that shows the flavours, prices and photos and hands the customer over to WhatsApp, where the order is settled. There is no cart, checkout or payment on the site.
 
 It is plain HTML, CSS and JavaScript on purpose. The menu is a JSON file edited by a single person, so there is no build step, no framework to keep up to date and no runtime dependencies to break (the only dev dependency is the Biome linter). Changing a price means editing one line and pushing.
 
@@ -1806,6 +1806,7 @@ To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previe
 - Code, comments, test titles and messages, JSON keys, CSS classes and file names are in English.
 - Text that the site visitor sees (page copy, `alt` and `aria-label`, meta tags, the WhatsApp message and the cake names) is in Portuguese.
 - Deliberate exception: cake `id`s and the photo names derived from them follow the product name in Portuguese (`cenoura-vulcao`, `cenoura-vulcao.webp`).
+- The brand is written **Delícias da Cá**, with the accent, in everything the visitor reads. The repository, the site address and the cake ids stay ASCII (`delicias-da-ca`), because they are slugs.
 - Commit messages are in Portuguese.
 - Code style is enforced by Biome: `npm run lint:fix` fixes it, `npm run lint` (and CI) checks it. See [Code quality](#-code-quality).
 - The documents in [`docs/`](docs/superpowers) are in Portuguese. This README is in English because it is the project's page on GitHub.
@@ -1813,7 +1814,6 @@ To test a preview, send the link to yourself on WhatsApp. WhatsApp caches previe
 ## 🧩 Known gaps
 
 - Photos are still missing for 8 of the 18 cakes (`cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` and `pacoca`). Their cards show a brown block. The current list is always printed by `npm test`.
-- The opening hours shown on the page and the spelling "Delicias" (without the accent) are waiting for the owner's confirmation.
 ````
 
 - [ ] **Step 7: Commit do README**
@@ -1839,7 +1839,6 @@ git commit -m "docs: README final e publicação no Netlify"
 - [ ] Abrir https://delicias-da-ca.netlify.app/ no celular, ver os 18 cards (com foto nos bolos que já têm e o bloco marrom nos demais) e testar um botão de pedido.
 - [ ] Abrir `https://delicias-da-ca.netlify.app/package.json` e `https://delicias-da-ca.netlify.app/docs/`: devem dar erro 404 (página não encontrada), provando que só os arquivos do site foram publicados.
 - [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto dos bolos). O WhatsApp guarda as prévias em cache: para testar de novo, acrescentar `?v=2` ao link. Se a foto não aparecer, abrir https://delicias-da-ca.netlify.app/og-image.jpg no navegador para ver se o arquivo está no ar.
-- [ ] Confirmar com a Cá os horários de encomenda e a grafia "Delicias" (pontos em aberto da spec).
 
 ---
 
