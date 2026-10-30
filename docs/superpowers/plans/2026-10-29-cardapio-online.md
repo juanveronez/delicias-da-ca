@@ -23,7 +23,7 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `package.json` | Só `{"type":"module"}` e o script `test`. Sem dependências. |
+| `package.json` | Só `name`, `private`, `type` e o script `test`. Sem dependências. |
 | `.gitignore` | Ignora `.superpowers/`, os prints de referência, `.DS_Store`. |
 | `js/whatsapp.js` | Funções puras: formatar preço, montar mensagem e link do WhatsApp. Sem DOM. |
 | `data/menu.json` | Os 18 bolos, na ordem de exibição. Só dados. |
@@ -917,6 +917,8 @@ Se o sandbox bloquear com `EPERM on listen`, não mexa em allowlist nem em sandb
 
 No Chrome: DevTools (⌥⌘I) → ícone de dispositivo (⇧⌘M) → iPhone 12 Pro (390px).
 
+O console do navegador vai mostrar erros 404 para `img/hero.webp`, `img/*.webp` e `favicon.ico`. Isso é esperado antes da Task 8: as fotos que faltam aparecem como os blocos marrons.
+
 Conferir:
 - [ ] O nome "Delicias da Cá" aparece em letra manuscrita, em cima do fundo creme.
 - [ ] O topo mostra um bloco marrom no lugar da foto (as fotos chegam na Task 8) e o botão verde "Fazer encomenda no WhatsApp".
@@ -924,6 +926,9 @@ Conferir:
 - [ ] Existem 18 cards, na ordem do cardápio original, cada um com bloco marrom, nome, preço e botão. Nenhum ícone de imagem quebrada.
 - [ ] Os nomes longos ("Chocolate com cobertura de brigadeiro") quebram em linhas sem estourar o card.
 - [ ] Não há rolagem horizontal.
+- [ ] Texto ampliado: no DevTools (modo dispositivo, 360px), com o tamanho da fonte do Chrome em "Muito grande" (Configurações → Aparência), a página não ganha rolagem horizontal e o texto não sai dos cartões (o texto pode descer para baixo da foto). Uma janela de desktop não encolhe até 360px, por isso é preciso o modo dispositivo do DevTools.
+- [ ] O botão "Pedir pelo WhatsApp" fica em uma ou duas linhas sem estourar o card.
+- [ ] Os preços em Georgia ficam bons. Os números "de livro antigo" da Georgia aparecem no iPhone, no Mac e no Windows; o Android não tem Georgia e usa a fonte com serifa padrão dele. Por isso, conferir num iPhone e num Android. Se os preços ficarem estranhos, trocar a fonte de `.cake__price` por `var(--font-button)`.
 
 - [ ] **Step 3: Conferir os botões**
 
@@ -934,13 +939,11 @@ Conferir:
 
 Deixar a janela em 700px e depois em 1100px.
 - [ ] Com 700px, o cardápio fica em 2 colunas. Com 1100px, em 3 colunas.
-- [ ] Texto ampliado: no Chrome do celular (ou no desktop em Configurações → Aparência → Tamanho da fonte → Muito grande), com a janela em 360px, a página não ganha rolagem horizontal e o texto não sai dos cartões (o texto pode descer para baixo da foto).
-- [ ] Conferir se o botão "Pedir pelo WhatsApp" fica em uma ou duas linhas e se os preços em Georgia (números "de livro antigo" no iPhone e no Mac) ficam bons; se ficarem estranhos, trocar a fonte de `.cake__price` por `var(--font-button)`.
 
 - [ ] **Step 5: Conferir as falhas**
 
 - [ ] **JSON ausente:** renomear temporariamente `data/menu.json` para `data/menu.json.bak`, recarregar. Deve aparecer o aviso "Não conseguimos mostrar o cardápio agora..." com o botão do WhatsApp. Depois voltar o nome original.
-- [ ] **Sem JavaScript:** DevTools → ⌘⇧P → "Disable JavaScript" → recarregar. Deve aparecer o aviso do `<noscript>` com o botão. O botão do topo continua funcionando. Reativar o JavaScript depois.
+- [ ] **Sem JavaScript:** DevTools → ⌘⇧P → "Disable JavaScript" → recarregar. Deve aparecer o aviso do `<noscript>` com o botão. O botão do topo continua funcionando. Sem JavaScript, o topo mostra o ícone de imagem quebrada e o texto alternativo da foto até a Task 8, porque o `onerror` embutido na imagem precisa de JavaScript. Isso é esperado, não é defeito. Reativar o JavaScript depois.
 
 - [ ] **Step 6: Rodar os testes e parar o servidor**
 
@@ -949,8 +952,10 @@ Expected: `ℹ fail 0`. Parar o servidor com Ctrl+C.
 
 - [ ] **Step 7: Commit (somente se algo foi corrigido)**
 
+Liste só os arquivos que foram de fato corrigidos. Se sobrou um `data/menu.json.bak` do passo 5, apague-o: ele não pode ir para o commit.
+
 ```bash
-git add -A
+git add <arquivos corrigidos>
 git status --short   # check that only the fixed files were staged
 git commit -m "fix: ajustes encontrados na conferência no navegador"
 ```
@@ -959,7 +964,7 @@ git commit -m "fix: ajustes encontrados na conferência no navegador"
 
 ### Task 8: Fotos dos bolos
 
-**Gate:** só comece quando o usuário tiver entregue as 18 fotos dos bolos e a foto de destaque do topo, cada uma identificada. Sugestão: uma pasta (ex.: `~/Pictures/cake-photos/`) com os arquivos `.jpg` nomeados pelo `id` do bolo, como `cenoura-vulcao.jpg`, e a foto de destaque como `hero.jpg`. Os prints da raiz **não** servem: têm texto sobreposto.
+**Gate:** só comece quando o usuário tiver entregue as 18 fotos dos bolos e a foto de destaque do topo, cada uma identificada. Sugestão: uma pasta (ex.: `~/Pictures/cake-photos/`) com os arquivos `.jpg` (em minúsculas) nomeados pelo `id` do bolo, como `cenoura-vulcao.jpg`, e a foto de destaque como `hero.jpg`. Exportações do iPhone costumam vir como `.HEIC`, `.JPG` ou `.jpeg`: converta antes cada uma com `sips -s format jpeg "<origem>" --out "<pasta>/<id>.jpg"`. O laço do passo 4 só enxerga `*.jpg`, e o zsh aborta com `no matches found` quando nenhum arquivo casa. Os prints da raiz **não** servem: têm texto sobreposto.
 
 **Files:**
 - Create: `tests/photos.test.js`
@@ -1006,9 +1011,9 @@ O macOS sabe ler WebP mas não gravar. O `cwebp` vem do pacote `webp` do Homebre
 Run: `command -v cwebp || brew install webp`
 Expected: o caminho do `cwebp` ou o fim da instalação.
 
-- [ ] **Step 4: Converter as fotos dos bolos (800px de largura máxima, WebP qualidade 80)**
+- [ ] **Step 4: Converter as fotos dos bolos (lado maior de até 800px, WebP qualidade 80)**
 
-Ajuste `SRC_DIR` para a pasta com as fotos do usuário.
+Ajuste `SRC_DIR` para a pasta com as fotos do usuário. Os arquivos precisam ser `.jpg` em minúsculas e nomeados pelo `id` (veja o Gate). O laço ignora outras extensões e, se nenhum arquivo casar com `*.jpg`, o zsh aborta com `no matches found`. O `sips -Z 800` limita o LADO MAIOR a 800px, não a largura.
 
 ```bash
 SRC_DIR="$HOME/Pictures/cake-photos"
@@ -1022,13 +1027,14 @@ for original in "$SRC_DIR"/*.jpg; do
 done
 ```
 
-- [ ] **Step 5: Converter a foto de destaque (1200px)**
+- [ ] **Step 5: Converter a foto de destaque (lado maior de até 1200px)**
 
 Rode no mesmo terminal do passo 4: as variáveis `SRC_DIR` e `TMP` precisam existir.
 
 ```bash
 sips -Z 1200 -s format png "$SRC_DIR/hero.jpg" --out "$TMP/hero.png" >/dev/null
 cwebp -quiet -q 80 "$TMP/hero.png" -o img/hero.webp
+rm -r "$TMP"
 ```
 
 - [ ] **Step 6: Rodar e ver passar**
@@ -1041,6 +1047,8 @@ Expected: `ℹ fail 0`. Se alguma foto passar de 200 KB, refazer a conversão de
 Subir o servidor como na Task 7 e conferir:
 - [ ] Cada card mostra a foto do bolo certo (comparar com o nome).
 - [ ] O topo mostra a foto de destaque.
+- [ ] Nenhuma foto está girada: fotos de celular guardam a rotação nos metadados (EXIF), e a conversão pode perdê-la. Se alguma estiver de lado ou de cabeça para baixo, gire a foto de origem e converta de novo.
+- [ ] A pasta `img/` tem só os 19 arquivos esperados (`hero.webp` e os 18 `<id>.webp`): `ls -A img | wc -l` mostra `19`. O teste confere que os arquivos esperados existem, mas não que não há sobras (um `.png` esquecido, por exemplo).
 
 - [ ] **Step 8: Commit**
 
@@ -1095,11 +1103,11 @@ Edite só o `data/menu.json`. Cada bolo é uma linha:
 - `price`: número em reais, sem o símbolo `R$`.
 - `photo`: nome do arquivo dentro de `img/`, sempre o `id` mais `.webp` (`<id>.webp`).
 
-Depois de editar, rode `npm test`. Ele avisa se o JSON está quebrado (por exemplo, uma vírgula sobrando). Se incluir ou tirar um sabor de propósito, o teste `menu.json has the expected number of cakes` vai falhar: troque o número da constante `EXPECTED_COUNT` em `tests/menu.test.js`. Também confira que o campo `photo` é o `id` mais `.webp`.
+Depois de editar, rode `npm test`. Ele avisa se o JSON está quebrado (por exemplo, uma vírgula sobrando). Se incluir ou tirar um sabor de propósito, o teste `menu.json has the expected number of cakes` vai falhar: troque o número da constante `EXPECTED_COUNT` em `tests/menu.test.js`. Também confira que o campo `photo` é o `id` mais `.webp`. Incluir um sabor também exige a foto nova em `img/<id>.webp` (veja a seção Fotos); sem ela, o teste `tests/photos.test.js` falha.
 
 ## Fotos
 
-Uma foto por bolo em `img/<id>.webp`, com até 800px de largura e menos de 200 KB. A foto do topo é `img/hero.webp` (até 1200px). Para converter, instale o `cwebp` (`brew install webp`) e veja a Task 8 do plano em `docs/superpowers/plans/`.
+Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior e menos de 200 KB. A foto do topo é `img/hero.webp` (até 1200px no lado maior). Para converter, instale o `cwebp` (`brew install webp`) e veja a Task 8 do plano em `docs/superpowers/plans/`.
 
 ## Testes
 
@@ -1123,7 +1131,7 @@ git commit -m "docs: README com como editar, testar e publicar"
 
 - [ ] **Step 3: Definir a URL pública**
 
-Com a hospedagem escolhida, anote a URL final com a barra no fim (por exemplo, a que o GitHub Pages ou o Netlify mostrar para o projeto). Chame de `PUBLIC_URL` nos passos seguintes.
+Com a hospedagem escolhida, anote a URL final com a barra no fim (por exemplo, a que o GitHub Pages ou o Netlify mostrar para o projeto). Chame de `PUBLIC_URL` nos passos seguintes. No GitHub Pages, quando o remoto for `github.com/<usuario>/delicias-da-ca`, a URL pública é `https://<usuario>.github.io/delicias-da-ca/` (confira o remoto com `git remote -v`).
 
 - [ ] **Step 4: Acrescentar `og:url` e `og:image` ao `index.html`**
 
@@ -1148,16 +1156,27 @@ Expected: `ℹ fail 0`.
 
 - [ ] **Step 6: Commit e publicar**
 
+- Antes de publicar: conferir o e-mail do autor dos commits (`git log --format='%an <%ae>'`); em repositório público ele fica visível.
+- Opcional: um arquivo `.nojekyll` vazio na raiz do repositório impede que o GitHub Pages rode o Jekyll sobre os `.md` de `docs/`. Se for criado, rode `git add .nojekyll` junto com o `git add index.html` do item (a).
+
+Seguir esta ordem:
+
+(a) Fazer o commit das tags `og:`:
+
 ```bash
 git add index.html
 git commit -m "feat: prévia de compartilhamento com og:url e og:image"
 ```
 
-Publicar conforme a hospedagem escolhida. O merge da branch `feat/cardapio-online` na `main` e o envio ao GitHub só acontecem com o pedido do usuário (usar a skill `superpowers:finishing-a-development-branch`).
+(b) Terminar a branch `feat/cardapio-online` com a skill `superpowers:finishing-a-development-branch` (merge na `main` e envio ao GitHub). Isso só acontece com o pedido do usuário.
+
+(c) Ativar o GitHub Pages a partir da `main` (Settings → Pages). O Pages gratuito exige repositório PÚBLICO, e isso também deixa público o e-mail de autor dos commits (veja o primeiro item acima). No Netlify, ligar o repositório ao site.
+
+(d) Conferir o site publicado (Step 7).
 
 - [ ] **Step 7: Conferir o site publicado**
 
 - [ ] Abrir a URL pública no celular, ver os 18 cards com foto e testar um botão de pedido.
 - [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto).
-- Plano B, só se a prévia não mostrar a foto: o WhatsApp pode não aceitar WebP no `og:image` (e prefere imagens com menos de uns 300 KB). Gerar um JPEG com `sips -Z 1200 -s format jpeg -s formatOptions 70 <foto de origem> --out img/og.jpg`, conferir que ele tem menos de 300 KB, apontar o `og:image` para `PUBLIC_URL` + `img/og.jpg` (ou seja, `PUBLIC_URLimg/og.jpg`) e incluir o `img/og.jpg` no commit.
+- Plano B, só se a prévia não mostrar a foto: o WhatsApp pode não aceitar WebP no `og:image` (e prefere imagens com menos de uns 300 KB). Gerar um JPEG com `sips -Z 1200 -s format jpeg -s formatOptions 70 <foto de origem> --out img/og.jpg`, conferir que ele tem menos de 300 KB, apontar o `og:image` para `PUBLIC_URL` + `img/og.jpg` (ou seja, `PUBLIC_URLimg/og.jpg`) e incluir o `img/og.jpg` no commit. O WhatsApp guarda em cache as prévias de link; por isso, depois de trocar para `img/og.jpg`, o reteste pode exigir uma variante da URL (por exemplo, acrescentar `?v=2` ao link compartilhado).
 - [ ] Confirmar com a Cá os horários de encomenda e a grafia "Delicias" (pontos em aberto da spec).

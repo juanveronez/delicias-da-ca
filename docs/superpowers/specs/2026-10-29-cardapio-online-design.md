@@ -102,14 +102,14 @@ js/whatsapp.js       → funções puras: montar o link e formatar o preço
 js/app.js            → busca o JSON, monta os cards, trata erros
 img/                 → fotos otimizadas
 tests/               → testes
-package.json         → só {"type":"module"} e o script "test"; sem dependências
+package.json         → só "name", "private", "type" e o script "test"; sem dependências
 ```
 
 `js/whatsapp.js` é um módulo ES, carregado pelo navegador por `<script type="module">` e importado pelos testes no Node.
 
 ## Fotos
 
-- Uma foto por bolo em `img/<id>.webp`, com cerca de 800px de largura.
+- Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior. A foto de destaque do topo é `img/hero.webp`, com até 1200px no lado maior.
 - A otimização é feita antes de entrar no repositório. Os prints enviados têm uns 5 MB cada, grandes demais para o site.
 - Se a foto de um bolo faltar, o card mostra um bloco marrom no lugar, sem imagem quebrada.
 - Cada imagem tem texto alternativo com o nome do bolo.
@@ -165,5 +165,5 @@ Carrinho, filtros e busca, painel de edição, pagamento online, frete por bairr
 
 - **Horários:** a imagem original está cortada no fim. A leitura acima precisa de confirmação da Cá.
 - **Grafia:** o nome está como no cardápio ("Delicias da Cá", sem acento no "i"). Confirmar se é intencional.
-- **Fotos:** falta receber as 18 fotos, com o sabor de cada uma identificado.
+- **Fotos:** falta receber as 19 fotos (18 bolos e a foto de destaque do topo), com o sabor de cada bolo identificado.
 - **Hospedagem e endereço:** GitHub Pages ou Netlify, e se haverá domínio próprio. Isso define a URL do `og:image`.
