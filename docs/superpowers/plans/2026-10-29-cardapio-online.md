@@ -24,7 +24,7 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `package.json` | Só `name`, `private`, `type` e o script `test`. Sem dependências. |
-| `.gitignore` | Ignora `.superpowers/`, os prints de referência, `.DS_Store`. |
+| `.gitignore` | Ignora `.superpowers/`, os prints de referência, `.DS_Store`, `node_modules/` e `fotos-originais/` (as fotos enviadas, antes da otimização). |
 | `js/whatsapp.js` | Funções puras: formatar preço, montar mensagem e link do WhatsApp. Sem DOM. |
 | `data/menu.json` | Os 18 bolos, na ordem de exibição. Só dados. |
 | `index.html` | Estrutura da página, textos fixos, meta tags, botão geral e aviso de erro. |
@@ -35,8 +35,8 @@
 | `tests/menu.test.js` | Valida `data/menu.json`. |
 | `tests/index.test.js` | Garante que os links e meta tags do `index.html` estão corretos. |
 | `tests/app.test.js` | Garante que `js/app.js` não injeta HTML e usa `rel` seguro. |
-| `tests/photos.test.js` | (Task 8) Garante que cada foto existe, é WebP e é leve. |
-| `img/` | Fotos otimizadas (Task 8). |
+| `tests/photos.test.js` | (Task 8) Garante que cada foto presente em `img/` é citada no `data/menu.json` (ou é `hero.webp`), é WebP e é leve. Lista os bolos ainda sem foto, sem falhar. |
+| `img/` | Fotos otimizadas (Task 8), que podem chegar em lotes. |
 | `README.md` | Como editar o cardápio, rodar, testar e publicar. |
 
 ## Regras gerais deste plano
@@ -67,6 +67,7 @@ Expected: `Switched to a new branch 'feat/cardapio-online'`
 Screenshot *.png
 .DS_Store
 node_modules/
+fotos-originais/
 ```
 
 - [ ] **Step 3: Criar `package.json`**
@@ -1010,45 +1011,54 @@ git commit -m "fix: ajustes encontrados na conferência no navegador"
 
 ### Task 8: Fotos dos bolos
 
-**Gate:** só comece quando o usuário tiver entregue as 18 fotos dos bolos e a foto de destaque do topo, cada uma identificada. Sugestão: uma pasta (ex.: `~/Pictures/cake-photos/`) com os arquivos `.jpg` (em minúsculas) nomeados pelo `id` do bolo, como `cenoura-vulcao.jpg`, e a foto de destaque como `hero.jpg`. Exportações do iPhone costumam vir como `.HEIC`, `.JPG` ou `.jpeg`: converta antes cada uma com `sips -s format jpeg "<origem>" --out "<pasta>/<id>.jpg"`. O laço do passo 4 só enxerga `*.jpg`, e o zsh aborta com `no matches found` quando nenhum arquivo casa. Os prints da raiz **não** servem: têm texto sobreposto.
+**Gate:** as fotos podem chegar em lotes, então não é preciso esperar pelas 18 nem pela foto de destaque do topo. Converta as que já foram entregues, cada uma identificada pelo `id` do bolo. Um bolo sem foto é um estado permitido: o card mostra o bloco marrom, e o teste só lista quais ainda faltam, sem falhar. Sem `img/hero.webp`, o topo da página fica sem foto. Sugestão: uma pasta com os arquivos `.jpg` (em minúsculas) nomeados pelo `id`, como `cenoura-vulcao.jpg`, e a foto de destaque como `hero.jpg`. Neste repositório a pasta é `fotos-originais/`, que está no `.gitignore` (só as versões otimizadas de `img/` vão para o Git); outra opção é `~/Pictures/cake-photos/`. Exportações do iPhone costumam vir como `.HEIC`, `.JPG` ou `.jpeg`: converta antes cada uma com `sips -s format jpeg "<origem>" --out "<pasta>/<id>.jpg"`. O laço do passo 4 só enxerga `*.jpg`, e o zsh aborta com `no matches found` quando nenhum arquivo casa. Os prints da raiz **não** servem: têm texto sobreposto.
+
+Primeiro lote (entregue em 30/10/2026): chegaram 10 das 18 fotos (`banana`, `cenoura-brigadeiro`, `cenoura-chocolate`, `chocolate-brigadeiro`, `fuba-goiabada`, `laranja`, `limao`, `ninho-cobertura`, `ninho-vulcao` e `pacoca-vulcao`). Faltam `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`, além da foto de destaque.
 
 **Files:**
 - Create: `tests/photos.test.js`
-- Create: `img/hero.webp` e `img/<id>.webp` para os 18 bolos
+- Create: `img/<id>.webp` para cada foto já entregue (10 das 18 no primeiro lote) e, quando existir, `img/hero.webp`
 
-- [ ] **Step 1: Escrever o teste que falha**
+- [ ] **Step 1: Escrever o teste**
 
-Criar `tests/photos.test.js`:
+Criar `tests/photos.test.js`. Ele confere só os arquivos que existem em `img/`: cada um tem de ser citado no `data/menu.json` (ou ser o `hero.webp`), ser WebP e ter até 200 KB. A falta de uma foto não reprova nada: o teste só imprime a lista dos bolos que ainda não têm foto.
 
 ```js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
 const MAX_BYTES = 200 * 1024;
+const HERO_FILE = 'hero.webp';
 
 const cakes = JSON.parse(
   await readFile(new URL('../data/menu.json', import.meta.url), 'utf8'),
 );
-const files = ['hero.webp', ...cakes.map((cake) => cake.photo)];
+const imgDir = new URL('../img/', import.meta.url);
+const present = (await readdir(imgDir).catch(() => [])).filter((name) => !name.startsWith('.'));
+const known = new Set([HERO_FILE, ...cakes.map((cake) => cake.photo)]);
 
-for (const file of files) {
-  test(`img/${file} exists, is WebP and is small enough`, async () => {
-    const bytes = await readFile(new URL(`../img/${file}`, import.meta.url));
+for (const file of present) {
+  test(`img/${file} is a known, valid and light WebP`, async () => {
+    assert.ok(known.has(file), `${file} is not referenced by data/menu.json and is not ${HERO_FILE}`);
+    const bytes = await readFile(new URL(file, imgDir));
     assert.equal(bytes.subarray(0, 4).toString('ascii'), 'RIFF', 'not a WebP file');
     assert.equal(bytes.subarray(8, 12).toString('ascii'), 'WEBP', 'not a WebP file');
-    assert.ok(
-      bytes.length <= MAX_BYTES,
-      `${file} is ${bytes.length} bytes; the limit is ${MAX_BYTES}`,
-    );
+    assert.ok(bytes.length <= MAX_BYTES, `${file} has ${bytes.length} bytes; the limit is ${MAX_BYTES}`);
   });
 }
+
+test('lists the cakes that still have no photo', (t) => {
+  const missing = cakes.filter((cake) => !present.includes(cake.photo)).map((cake) => cake.id);
+  const hero = present.includes(HERO_FILE) ? 'present' : 'missing';
+  t.diagnostic(`${missing.length} cake(s) without a photo yet: ${missing.join(', ') || 'none'}; ${HERO_FILE} ${hero}`);
+});
 ```
 
-- [ ] **Step 2: Rodar e ver falhar**
+- [ ] **Step 2: Rodar e ver a lista de sabores sem foto**
 
 Run: `npm test`
-Expected: 19 testes de `photos.test.js` falham com `ENOENT` (as fotos ainda não existem).
+Expected: este teste não tem fase vermelha, porque a falta de foto é permitida. Sem a pasta `img/`, `ℹ fail 0` e 22 testes passam (os 21 anteriores e o que lista os bolos sem foto), com uma linha de diagnóstico como `18 cake(s) without a photo yet: banana, cenoura, ...; hero.webp missing`.
 
 - [ ] **Step 3: Instalar o conversor (peça confirmação ao usuário antes)**
 
@@ -1057,51 +1067,83 @@ O macOS sabe ler WebP mas não gravar. O `cwebp` vem do pacote `webp` do Homebre
 Run: `command -v cwebp || brew install webp`
 Expected: o caminho do `cwebp` ou o fim da instalação.
 
-- [ ] **Step 4: Converter as fotos dos bolos (lado maior de até 800px, WebP qualidade 80)**
+- [ ] **Step 4: Converter as fotos dos bolos (lado maior de até 800px, só reduzindo, WebP qualidade 80)**
 
-Ajuste `SRC_DIR` para a pasta com as fotos do usuário. Os arquivos precisam ser `.jpg` em minúsculas e nomeados pelo `id` (veja o Gate). O laço ignora outras extensões e, se nenhum arquivo casar com `*.jpg`, o zsh aborta com `no matches found`. O `sips -Z 800` limita o LADO MAIOR a 800px, não a largura.
+Ajuste `SRC_DIR` para a pasta com as fotos do usuário (aqui, `fotos-originais`). Os arquivos precisam ser `.jpg` em minúsculas e nomeados pelo `id` (veja o Gate). O laço ignora outras extensões e, se nenhum arquivo casar com `*.jpg`, o zsh aborta com `no matches found`. O `sips -Z 800` limita o LADO MAIOR a 800px, não a largura. A função `to_webp` só reduz: o `sips -Z` também AMPLIA uma foto menor que o limite (um 540x502 viraria 800x743, mais borrado e mais pesado), então a função só chama o `-Z` quando o lado maior passa do limite.
 
 ```bash
 SRC_DIR="$HOME/Pictures/cake-photos"
 TMP="$(mktemp -d)"
 mkdir -p img
+
+# Converts <source> to a WebP (quality 80) at <output>. The longest side is
+# shrunk to <max> px when it is larger; smaller photos are never enlarged.
+to_webp() {
+  local source="$1" output="$2" max="$3"
+  local width height longest png
+  width="$(sips -g pixelWidth "$source" | awk '/pixelWidth/ {print $2}')"
+  height="$(sips -g pixelHeight "$source" | awk '/pixelHeight/ {print $2}')"
+  longest=$(( width > height ? width : height ))
+  png="$TMP/$(basename "$output" .webp).png"
+  if [ "$longest" -gt "$max" ]; then
+    sips -Z "$max" -s format png "$source" --out "$png" >/dev/null
+  else
+    sips -s format png "$source" --out "$png" >/dev/null
+  fi
+  cwebp -quiet -q 80 "$png" -o "$output"
+}
+
 for original in "$SRC_DIR"/*.jpg; do
   id="$(basename "$original" .jpg)"
   [ "$id" = "hero" ] && continue
-  sips -Z 800 -s format png "$original" --out "$TMP/$id.png" >/dev/null
-  cwebp -quiet -q 80 "$TMP/$id.png" -o "img/$id.webp"
+  to_webp "$original" "img/$id.webp" 800
 done
 ```
 
-- [ ] **Step 5: Converter a foto de destaque (lado maior de até 1200px)**
+No primeiro lote, `cenoura-brigadeiro` (720x688) e `laranja` (540x502, depois do recorte) ficaram no tamanho original; as outras oito foram reduzidas para 800px no lado maior.
 
-Rode no mesmo terminal do passo 4: as variáveis `SRC_DIR` e `TMP` precisam existir.
+**Print de tela com barras pretas:** recorte a foto antes de converter. No primeiro lote, `laranja.jpg` (540x1158) era um print de celular com barras pretas em cima (linhas 0 a 322) e embaixo (linhas 835 a 1157); a foto de verdade ocupa as linhas 323 a 834. Para achar as bordas sem depender do olho, converta para BMP (`sips -s format bmp`) e calcule com `python3 -I` a luminância média de cada linha (barra preta: abaixo de 3; foto: acima de 30). As linhas 323 e 834 são de transição (meio escuras), e a foto inteira vai da 324 à 833. O recorte entra 4px além desses limites, para não sobrar linha escura nem pixel suavizado:
 
 ```bash
-sips -Z 1200 -s format png "$SRC_DIR/hero.jpg" --out "$TMP/hero.png" >/dev/null
-cwebp -quiet -q 80 "$TMP/hero.png" -o img/hero.webp
+sips --cropToHeightWidth 502 540 --cropOffset 328 0 "$SRC_DIR/laranja.jpg" --out "$TMP/laranja-crop.jpg"
+to_webp "$TMP/laranja-crop.jpg" img/laranja.webp 800
+```
+
+O `--cropOffset` é medido a partir do canto superior esquerdo (linha, coluna), e o resultado fica com 540x502 (linhas 328 a 829 do original). Rode essas duas linhas depois do laço, que também converteu o `laranja.jpg` original (com as barras) e será sobrescrito. Confirme que a primeira e a última linha do recorte não são escuras.
+
+- [ ] **Step 5: Converter a foto de destaque (lado maior de até 1200px, só reduzindo)**
+
+Rode no mesmo terminal do passo 4: as variáveis `SRC_DIR` e `TMP` e a função `to_webp` precisam existir. Se o `hero.jpg` ainda não chegou, não rode a primeira linha (o topo da página fica sem foto) e rode só o `rm -r`.
+
+```bash
+to_webp "$SRC_DIR/hero.jpg" img/hero.webp 1200
 rm -r "$TMP"
 ```
 
 - [ ] **Step 6: Rodar e ver passar**
 
 Run: `npm test`
-Expected: `ℹ fail 0`. Se alguma foto passar de 200 KB, refazer a conversão dela com `-q 70`.
+Expected: `ℹ fail 0`. Cada foto presente em `img/` vira um teste (`img/<arquivo> is a known, valid and light WebP`). Com as 10 fotos do primeiro lote passam 32 testes (21 anteriores, 1 que lista os bolos sem foto e 10 de foto), e a linha de diagnóstico lista os 8 bolos que faltam e `hero.webp missing`. Se alguma foto passar de 200 KB, refazer a conversão dela com `-q 70`. Se o teste disser que um arquivo "is not referenced", o nome dele não bate com o campo `photo` do `data/menu.json` (ou sobrou em `img/` um arquivo que não é foto).
 
 - [ ] **Step 7: Conferir no navegador**
 
 Subir o servidor como na Task 7 e conferir:
-- [ ] Cada card mostra a foto do bolo certo (comparar com o nome).
-- [ ] O topo mostra a foto de destaque.
-- [ ] Nenhuma foto está girada: fotos de celular guardam a rotação nos metadados (EXIF), e a conversão pode perdê-la. Se alguma estiver de lado ou de cabeça para baixo, gire a foto de origem e converta de novo.
-- [ ] A pasta `img/` tem só os 19 arquivos esperados (`hero.webp` e os 18 `<id>.webp`): `ls -A img | wc -l` mostra `19`. O teste confere que os arquivos esperados existem, mas não que não há sobras (um `.png` esquecido, por exemplo).
+- [ ] Cada card com foto mostra o bolo certo (comparar com o nome). Os cards sem foto continuam com o bloco marrom, sem imagem quebrada.
+- [ ] O topo mostra a foto de destaque, se o `hero.webp` já existe; senão, fica sem foto.
+- [ ] Nenhuma foto está girada: fotos de celular guardam a rotação nos metadados (EXIF), e a conversão pode perdê-la. Se alguma estiver de lado ou de cabeça para baixo, gire a foto de origem e converta de novo. (As fotos do primeiro lote vieram sem rotação nos metadados.)
+- [ ] O quadrado do card (112px) mostra o bolo inteiro: o CSS corta a foto no centro (`object-fit: cover`), e uma foto bem retangular pode perder as pontas. No primeiro lote, a mais retangular é `ninho-vulcao` (800x643), e o bolo cabe no quadrado central.
+- [ ] A pasta `img/` só tem arquivos esperados. O teste já garante isso: ele falha para qualquer arquivo que não seja o `hero.webp` nem uma foto citada no `data/menu.json` (um `.png` esquecido, por exemplo).
 
 - [ ] **Step 8: Commit**
 
+Troque o `10` pelo número de fotos entregues neste lote.
+
 ```bash
 git add img/ tests/photos.test.js
-git commit -m "feat: fotos otimizadas dos bolos e teste de tamanho"
+git commit -m "feat: fotos otimizadas de 10 bolos e teste que lista os sabores sem foto"
 ```
+
+Quando chegarem as fotos que faltam (e a de destaque), repita os passos 4 a 8 só para elas: o teste mostra o que ainda resta.
 
 ---
 
@@ -1149,11 +1191,11 @@ Edite só o `data/menu.json`. Cada bolo é uma linha:
 - `price`: número em reais, sem o símbolo `R$`.
 - `photo`: nome do arquivo dentro de `img/`, sempre o `id` mais `.webp` (`<id>.webp`).
 
-Depois de editar, rode `npm test`. Ele avisa se o JSON está quebrado (por exemplo, uma vírgula sobrando). Se incluir ou tirar um sabor de propósito, o teste `menu.json has the expected number of cakes` vai falhar: troque o número da constante `EXPECTED_COUNT` em `tests/menu.test.js`. Também confira que o campo `photo` é o `id` mais `.webp`. Incluir um sabor também exige a foto nova em `img/<id>.webp` (veja a seção Fotos); sem ela, o teste `tests/photos.test.js` falha.
+Depois de editar, rode `npm test`. Ele avisa se o JSON está quebrado (por exemplo, uma vírgula sobrando). Se incluir ou tirar um sabor de propósito, o teste `menu.json has the expected number of cakes` vai falhar: troque o número da constante `EXPECTED_COUNT` em `tests/menu.test.js`. Também confira que o campo `photo` é o `id` mais `.webp`. Incluir um sabor também pede a foto nova em `img/<id>.webp` (veja a seção Fotos). Sem ela o teste `tests/photos.test.js` não falha, mas lista o bolo entre os que ainda estão sem foto, e o card mostra o bloco marrom no lugar da imagem.
 
 ## Fotos
 
-Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior e menos de 200 KB. A foto do topo é `img/hero.webp` (até 1200px no lado maior). Para converter, instale o `cwebp` (`brew install webp`) e veja a Task 8 do plano em `docs/superpowers/plans/`.
+Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior e menos de 200 KB. Foto menor que 800px fica como está: não se amplia. A foto do topo é `img/hero.webp` (até 1200px no lado maior). Nenhuma foto é obrigatória: a que faltar não quebra a página (o card mostra um bloco marrom e o topo fica sem foto), e o `npm test` lista os bolos ainda sem foto. O teste também falha se sobrar em `img/` um arquivo que não seja o `hero.webp` nem uma foto citada no `data/menu.json`. Para converter, instale o `cwebp` (`brew install webp`) e veja a Task 8 do plano em `docs/superpowers/plans/`.
 
 ## Testes
 
@@ -1180,6 +1222,8 @@ git commit -m "docs: README com como editar, testar e publicar"
 Com a hospedagem escolhida, anote a URL final com a barra no fim (por exemplo, a que o GitHub Pages ou o Netlify mostrar para o projeto). Chame de `PUBLIC_URL` nos passos seguintes. No GitHub Pages, quando o remoto for `github.com/<usuario>/delicias-da-ca`, a URL pública é `https://<usuario>.github.io/delicias-da-ca/` (confira o remoto com `git remote -v`).
 
 - [ ] **Step 4: Acrescentar `og:url` e `og:image` ao `index.html`**
+
+Só faça este passo com o `img/hero.webp` já no repositório: sem ele o `og:image` aponta para uma imagem que não existe, e a prévia do link sai sem foto.
 
 Dentro do `<head>`, logo depois da linha `<meta property="og:description" ...>`, inserir as duas linhas abaixo, trocando `PUBLIC_URL` pela URL do passo 3:
 
@@ -1222,7 +1266,7 @@ git commit -m "feat: prévia de compartilhamento com og:url e og:image"
 
 - [ ] **Step 7: Conferir o site publicado**
 
-- [ ] Abrir a URL pública no celular, ver os 18 cards com foto e testar um botão de pedido.
+- [ ] Abrir a URL pública no celular, ver os 18 cards (com foto nos bolos que já têm e o bloco marrom nos demais) e testar um botão de pedido.
 - [ ] Enviar o link para si mesmo no WhatsApp e conferir a prévia (título, descrição e foto).
 - Plano B, só se a prévia não mostrar a foto: o WhatsApp pode não aceitar WebP no `og:image` (e prefere imagens com menos de uns 300 KB). Gerar um JPEG com `sips -Z 1200 -s format jpeg -s formatOptions 70 <foto de origem> --out img/og.jpg`, conferir que ele tem menos de 300 KB, apontar o `og:image` para `PUBLIC_URL` + `img/og.jpg` (ou seja, `PUBLIC_URLimg/og.jpg`) e incluir o `img/og.jpg` no commit. O WhatsApp guarda em cache as prévias de link; por isso, depois de trocar para `img/og.jpg`, o reteste pode exigir uma variante da URL (por exemplo, acrescentar `?v=2` ao link compartilhado).
 - [ ] Confirmar com a Cá os horários de encomenda e a grafia "Delicias" (pontos em aberto da spec).

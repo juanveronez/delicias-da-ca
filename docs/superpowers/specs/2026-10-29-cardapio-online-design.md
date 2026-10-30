@@ -110,7 +110,10 @@ package.json         → só "name", "private", "type" e o script "test"; sem de
 
 ## Fotos
 
-- Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior. A foto de destaque do topo é `img/hero.webp`, com até 1200px no lado maior.
+- Uma foto por bolo em `img/<id>.webp`, com até 800px no lado maior (o limite vale para o lado maior, não só para a largura). A foto de destaque do topo é `img/hero.webp`, com até 1200px no lado maior.
+- As fotos nunca são ampliadas: uma foto menor que o limite mantém o tamanho original, porque ampliar só a deixa mais borrada e mais pesada.
+- Prints de tela com barras pretas são recortados antes da conversão, para não sobrar faixa escura na foto.
+- As fotos podem chegar em lotes. Um bolo sem foto é um estado permitido, e o `npm test` lista quais ainda faltam.
 - A otimização é feita antes de entrar no repositório. Os prints enviados têm uns 5 MB cada, grandes demais para o site.
 - Se a foto de um bolo faltar, o card mostra um bloco marrom no lugar, sem imagem quebrada.
 - Cada imagem tem texto alternativo com o nome do bolo.
@@ -147,6 +150,7 @@ Usam o executor do próprio Node (`node --test`), sem instalar nada.
 - **`menu.json`:** é um JSON válido (o que pega a vírgula sobrando antes de publicar), e cada item tem `id`, `name`, `price` (número positivo) e `photo`, que tem de ser o `id` mais `.webp`. A quantidade de bolos é conferida contra uma constante nomeada (`EXPECTED_COUNT`), e `id` repetido é reportado pelo nome.
 - **`index.html`:** todos os links do WhatsApp são o link geral, e a quantidade deles é conferida contra uma constante nomeada (`EXPECTED_WHATSAPP_LINK_COUNT`). Os links que abrem em nova aba têm `rel="noopener noreferrer"`. O aviso de erro começa oculto e o `<noscript>` oferece o WhatsApp. O favicon (`favicon.svg`) referenciado no `<head>` tem de existir.
 - **`app.js`:** busca o `menu.json` revalidando o cache a cada visita, para que uma mudança de preço apareça logo após a publicação, e um teste confere isso.
+- **`photos.test.js`:** valida as fotos que existem em `img/`: cada arquivo tem de ser citado no `data/menu.json` (ou ser o `hero.webp`), ser WebP e ter até 200 KB. A falta de uma foto não reprova: o teste lista os bolos ainda sem foto (e se o `hero.webp` já existe) sem falhar.
 - A aparência e a responsividade são conferidas abrindo a página em tamanho de celular, num servidor local.
 
 ## Como rodar localmente
@@ -161,10 +165,11 @@ Carrinho, filtros e busca, painel de edição, pagamento online, frete por bairr
 
 - A pasta `.superpowers/` (usada só nesta fase de design) entra no `.gitignore`.
 - Os dois prints na raiz (`Screenshot 2026-10-29 at ...png`) são material de referência e mostram o WhatsApp Web pessoal. Eles não devem ir para o site publicado nem para o repositório público. Devem sair da raiz ou ser ignorados.
+- A pasta `fotos-originais/` (as fotos enviadas, antes da otimização) entra no `.gitignore`: só as versões otimizadas de `img/` vão para o repositório.
 
 ## Pontos em aberto
 
 - **Horários:** a imagem original está cortada no fim. A leitura acima precisa de confirmação da Cá.
 - **Grafia:** o nome está como no cardápio ("Delicias da Cá", sem acento no "i"). Confirmar se é intencional.
-- **Fotos:** falta receber as 19 fotos (18 bolos e a foto de destaque do topo), com o sabor de cada bolo identificado.
+- **Fotos:** chegaram 10 das 18 fotos de bolos. Faltam `cenoura`, `cenoura-vulcao`, `chocolate`, `chocolate-chocolate`, `fuba`, `fuba-cremoso`, `milho` e `pacoca`, e a foto de destaque do topo (`hero.webp`) ainda não foi entregue. Cada foto nova precisa vir com o sabor identificado.
 - **Hospedagem e endereço:** GitHub Pages ou Netlify, e se haverá domínio próprio. Isso define a URL do `og:image`.
