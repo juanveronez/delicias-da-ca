@@ -13,9 +13,10 @@ function createPhoto(cake) {
   const photo = document.createElement('img');
   // Without a photo, the brown block of the frame keeps showing.
   photo.addEventListener('error', () => photo.remove());
+  // Set loading before src: some browsers ignore it otherwise.
+  photo.loading = 'lazy';
   photo.src = PHOTOS_DIR + cake.photo;
   photo.alt = `Bolo de ${cake.name}`;
-  photo.loading = 'lazy';
 
   frame.append(photo);
   return frame;

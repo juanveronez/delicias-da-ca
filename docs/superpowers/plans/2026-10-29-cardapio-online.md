@@ -793,6 +793,11 @@ test('app.js opens WhatsApp links with a safe rel', () => {
 test('app.js revalidates the menu on every visit', () => {
   assert.match(code, /fetch\(MENU_URL,\s*\{\s*cache:\s*'no-cache'\s*\}\)/);
 });
+
+test('app.js sets loading before src so lazy loading is honored', () => {
+  assert.ok(code.indexOf("photo.loading = 'lazy'") !== -1);
+  assert.ok(code.indexOf("photo.loading = 'lazy'") < code.indexOf('photo.src ='));
+});
 ```
 
 - [ ] **Step 2: Rodar e ver falhar**
@@ -820,9 +825,10 @@ function createPhoto(cake) {
   const photo = document.createElement('img');
   // Without a photo, the brown block of the frame keeps showing.
   photo.addEventListener('error', () => photo.remove());
+  // Set loading before src: some browsers ignore it otherwise.
+  photo.loading = 'lazy';
   photo.src = PHOTOS_DIR + cake.photo;
   photo.alt = `Bolo de ${cake.name}`;
-  photo.loading = 'lazy';
 
   frame.append(photo);
   return frame;

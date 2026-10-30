@@ -17,3 +17,8 @@ test('app.js opens WhatsApp links with a safe rel', () => {
 test('app.js revalidates the menu on every visit', () => {
   assert.match(code, /fetch\(MENU_URL,\s*\{\s*cache:\s*'no-cache'\s*\}\)/);
 });
+
+test('app.js sets loading before src so lazy loading is honored', () => {
+  assert.ok(code.indexOf("photo.loading = 'lazy'") !== -1);
+  assert.ok(code.indexOf("photo.loading = 'lazy'") < code.indexOf('photo.src ='));
+});
